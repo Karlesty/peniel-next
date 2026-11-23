@@ -218,8 +218,8 @@
                             <p id="sidebar-role-desc" class="text-[10px] text-slate-400">Solo lectura</p>
                         </div>
                     </div>
-                    <button onclick="logoutRole()" title="Cambiar perfil de ingreso" class="px-2.5 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-[11px] font-semibold text-white transition-colors cursor-pointer">
-                        Cambiar
+                    <button onclick="switchAccount()" title="Cerrar sesión y cambiar de cuenta" class="px-2.5 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-[11px] font-semibold text-white transition-colors cursor-pointer">
+                        <i class="fas fa-right-from-bracket mr-1"></i> Cambiar
                     </button>
                 </div>
 
@@ -282,9 +282,9 @@
                     <i class="fas fa-image"></i>
                     <span>Logo e Ícono de App</span>
                 </button>
-                <button onclick="selectLoginRole('admin'); logoutRole();" class="admin-only w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-emerald-300 hover:text-white bg-emerald-600/15 hover:bg-emerald-600/30 border border-emerald-500/30 transition-colors cursor-pointer">
-                    <i class="fas fa-key"></i>
-                    <span>Cambiar PIN Admin</span>
+                <button onclick="switchAccount()" class="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold text-emerald-300 hover:text-white bg-emerald-600/15 hover:bg-emerald-600/30 border border-emerald-500/30 transition-colors cursor-pointer">
+                    <i class="fas fa-right-from-bracket"></i>
+                    <span>Cerrar sesión / Cambiar cuenta</span>
                 </button>
                 <button onclick="openResetModal()" class="admin-only w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-amber-400 hover:bg-slate-800/80 border border-slate-800 transition-colors cursor-pointer">
                     <i class="fas fa-rotate-left"></i>
