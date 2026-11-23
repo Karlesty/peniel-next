@@ -108,15 +108,19 @@
             <!-- Formulario Administrador -->
             <form id="login-admin-panel" onsubmit="enterAppAsAdmin(event)" class="hidden space-y-4">
                 <div class="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-200">
-                    <i class="fas fa-lock text-amber-400 mr-1"></i> Ingresa el PIN de directiva para gestionar miembros, asistencia y programaciones.
+                    <i class="fas fa-lock text-amber-400 mr-1"></i> Acceso seguro de administrador mediante Firebase Authentication.
                 </div>
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">PIN de Administrador</label>
-                    <input type="password" id="admin-pin-input" inputmode="numeric" maxlength="8" required placeholder="PIN por defecto: 2026" class="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-2xl text-center text-lg font-extrabold tracking-widest text-white focus:outline-none focus:ring-2 focus:ring-amber-400">
-                    <p id="admin-pin-error" class="hidden text-xs text-red-400 font-semibold mt-1.5 text-center">PIN incorrecto. Intenta nuevamente (Por defecto: 2026).</p>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Correo del administrador</label>
+                    <input type="email" id="admin-email-input" autocomplete="username" required placeholder="admin@ejemplo.com" class="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-2xl text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-amber-400">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Contraseña</label>
+                    <input type="password" id="admin-password-input" autocomplete="current-password" required placeholder="Tu contraseña de Firebase" class="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-2xl text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-amber-400">
+                    <p id="admin-login-error" class="hidden text-xs text-red-400 font-semibold mt-1.5 text-center"></p>
                 </div>
                 <button type="submit" class="w-full py-3.5 px-5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-slate-950 font-extrabold text-sm rounded-2xl shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2">
-                    <i class="fas fa-unlock-keyhole"></i>
+                    <i class="fas fa-right-to-bracket"></i>
                     <span>Entrar como Administrador</span>
                 </button>
             </form>
@@ -278,7 +282,7 @@
                     <i class="fas fa-image"></i>
                     <span>Logo e Ícono de App</span>
                 </button>
-                <button onclick="openPinSettingsModal()" class="admin-only w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-emerald-300 hover:text-white bg-emerald-600/15 hover:bg-emerald-600/30 border border-emerald-500/30 transition-colors cursor-pointer">
+                <button onclick="selectLoginRole('admin'); logoutRole();" class="admin-only w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-emerald-300 hover:text-white bg-emerald-600/15 hover:bg-emerald-600/30 border border-emerald-500/30 transition-colors cursor-pointer">
                     <i class="fas fa-key"></i>
                     <span>Cambiar PIN Admin</span>
                 </button>
@@ -304,9 +308,9 @@
                         <p class="text-slate-500 text-sm mt-1">Administra tu Sociedad de Jóvenes, Grupos Pequeños y Clubes JA en un solo lugar.</p>
                     </div>
                     <div class="flex flex-wrap gap-2.5 admin-only">
-                        <button onclick="openPinSettingsModal()" class="inline-flex items-center gap-2 px-3.5 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-sm font-semibold rounded-xl transition-all cursor-pointer">
+                        <button onclick="switchAccount()" class="inline-flex items-center gap-2 px-3.5 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-sm font-semibold rounded-xl transition-all cursor-pointer">
                             <i class="fas fa-key"></i>
-                            <span>Cambiar PIN</span>
+                            <span>Cambiar cuenta</span>
                         </button>
                         <button onclick="switchView('scheduler')" class="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-all cursor-pointer">
                             <i class="fas fa-wand-magic-sparkles"></i>
@@ -836,38 +840,6 @@
     </div>
 
     <!-- ========================================================== -->
-    <!-- MODAL: CAMBIAR PIN DE ADMINISTRADOR                        -->
-    <!-- ========================================================== -->
-    <div id="pin-settings-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs">
-        <form onsubmit="saveNewAdminPin(event)" class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 border border-slate-200 fade-in space-y-4">
-            <div class="flex items-center justify-between">
-                <h3 class="font-extrabold text-slate-900 text-lg">Cambiar PIN de Administrador</h3>
-                <button type="button" onclick="closePinSettingsModal()" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center cursor-pointer">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <p class="text-xs text-slate-500">Este PIN protege la edición de la base de datos y las programaciones en todos los dispositivos conectados.</p>
-            <div>
-                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">PIN Actual</label>
-                <input type="password" id="current-admin-pin-input" inputmode="numeric" maxlength="8" required placeholder="Ingresa tu PIN actual" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-center text-base font-bold tracking-widest">
-            </div>
-            <div>
-                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Nuevo PIN (4 a 8 dígitos)</label>
-                <input type="password" id="new-admin-pin-input" inputmode="numeric" pattern="[0-9]{4,8}" maxlength="8" required placeholder="Ej. 4820" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-center text-lg font-extrabold tracking-widest">
-            </div>
-            <div>
-                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Confirmar Nuevo PIN</label>
-                <input type="password" id="confirm-admin-pin-input" inputmode="numeric" pattern="[0-9]{4,8}" maxlength="8" required placeholder="Repite el nuevo PIN" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-center text-lg font-extrabold tracking-widest">
-            </div>
-            <p id="pin-change-error" class="hidden text-xs text-red-600 font-semibold text-center"></p>
-            <div class="flex justify-end gap-2 pt-2">
-                <button type="button" onclick="closePinSettingsModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer">Cancelar</button>
-                <button type="submit" class="px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white cursor-pointer">Actualizar PIN</button>
-            </div>
-        </form>
-    </div>
-
-    <!-- ========================================================== -->
     <!-- MODAL: GUÍA DE INSTALACIÓN (PC, iOS Y ANDROID)             -->
     <!-- ========================================================== -->
     <div id="install-guide-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs overflow-y-auto">
@@ -1069,26 +1041,17 @@
     <!-- ========================================================== -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot, collection, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // ==========================================
         // 1. CONFIGURACIÓN NUBE Y MANIFIESTO PWA
         // ==========================================
-        const appId = 'peniel-next';
-        const firebaseConfig = {
-            apiKey: 'AIzaSyC8pA_iMbr4BGmP0H-E6XO9HWvCP-_Mnk8',
-            authDomain: 'peniel-next.firebaseapp.com',
-            projectId: 'peniel-next',
-            storageBucket: 'peniel-next.firebasestorage.app',
-            messagingSenderId: '515493525669',
-            appId: '1:515493525669:web:6c955e5efce85b2577354c'
-        };
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'ministerio-juvenil-ja-default';
         let db = null;
         let auth = null;
         let currentUser = null;
         let cloudReady = false;
-        let cloudAdminPin = '2026';
 
         // Estado principal de la aplicación
         let members = [];
@@ -1325,13 +1288,27 @@
 
         async function initCloudSync() {
             try {
+                const firebaseConfig = {
+                    apiKey: 'AIzaSyC8pA_iMbr4BGmP0H-E6XO9HWvCP-_Mnk8',
+                    authDomain: 'peniel-next.firebaseapp.com',
+                    projectId: 'peniel-next',
+                    storageBucket: 'peniel-next.firebasestorage.app',
+                    messagingSenderId: '515493525669',
+                    appId: '1:515493525669:web:6c955e5efce85b2577354c'
+                };
                 const app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
                 db = getFirestore(app);
 
-                const cred = await signInAnonymously(auth);
-                currentUser = cred.user;
+                if (auth.currentUser) {
+                    currentUser = auth.currentUser;
+                } else {
+                    const cred = await signInAnonymously(auth);
+                    currentUser = cred.user;
+                }
                 cloudReady = true;
+                currentUserRole = currentUser && !currentUser.isAnonymous ? 'admin' : 'viewer';
+                sessionStorage.setItem('ja_session_role', currentUserRole);
             } catch (err) {
                 console.warn('Iniciando en modo local:', err);
                 cloudReady = false;
@@ -1350,7 +1327,6 @@
             onSnapshot(configRef, (snap) => {
                 if (snap.exists()) {
                     const data = snap.data();
-                    if (data.adminPin) cloudAdminPin = data.adminPin;
                     cloudAppBrand = {
                         appName: data.appName || 'Peniel Next',
                         tagline: data.tagline || 'La próxima generación con propósito.',
@@ -1359,7 +1335,6 @@
                     applyBrandingToUI();
                 } else {
                     setDoc(configRef, {
-                        adminPin: '2026',
                         appName: 'Peniel Next',
                         tagline: 'La próxima generación con propósito.',
                         logoDataUrl: ''
@@ -1457,14 +1432,14 @@
             const adminBtn = document.getElementById('select-role-admin');
             const viewerPanel = document.getElementById('login-viewer-panel');
             const adminPanel = document.getElementById('login-admin-panel');
-            document.getElementById('admin-pin-error').classList.add('hidden');
+            document.getElementById('admin-login-error').classList.add('hidden');
 
             if (role === 'admin') {
                 adminBtn.className = 'py-2.5 px-3 rounded-xl text-xs font-bold transition-all bg-amber-500 text-slate-950 shadow-sm cursor-pointer';
                 viewerBtn.className = 'py-2.5 px-3 rounded-xl text-xs font-bold transition-all text-slate-400 hover:text-white cursor-pointer';
                 adminPanel.classList.remove('hidden');
                 viewerPanel.classList.add('hidden');
-                setTimeout(() => document.getElementById('admin-pin-input').focus(), 100);
+                setTimeout(() => document.getElementById('admin-email-input').focus(), 100);
             } else {
                 viewerBtn.className = 'py-2.5 px-3 rounded-xl text-xs font-bold transition-all bg-blue-600 text-white shadow-sm cursor-pointer';
                 adminBtn.className = 'py-2.5 px-3 rounded-xl text-xs font-bold transition-all text-slate-400 hover:text-white cursor-pointer';
@@ -1473,36 +1448,90 @@
             }
         };
 
-        window.enterAppAsViewer = function() {
-            currentUserRole = 'viewer';
-            sessionStorage.setItem('ja_session_role', 'viewer');
-            applyRolePermissionsUI();
-            if (savedSchedules.length > 0) {
-                currentDraftSchedule = JSON.parse(JSON.stringify(savedSchedules[0]));
-                renderDraftSchedule();
+        window.enterAppAsViewer = async function() {
+            try {
+                if (!cloudReady || !auth) throw new Error('Firebase todavía no está listo.');
+                if (!auth.currentUser || !auth.currentUser.isAnonymous) {
+                    await signOut(auth);
+                    const cred = await signInAnonymously(auth);
+                    currentUser = cred.user;
+                } else {
+                    currentUser = auth.currentUser;
+                }
+                currentUserRole = 'viewer';
+                sessionStorage.setItem('ja_session_role', 'viewer');
+                applyRolePermissionsUI();
+                if (savedSchedules.length > 0) {
+                    currentDraftSchedule = JSON.parse(JSON.stringify(savedSchedules[0]));
+                    renderDraftSchedule();
+                }
+                showToast('Ingresaste en Modo Consulta (Solo lectura).', 'info');
+            } catch (err) {
+                console.error(err);
+                showToast('No fue posible entrar en modo consulta.', 'error');
             }
-            showToast('Ingresaste en Modo Consulta (Solo lectura).', 'info');
         };
 
-        window.enterAppAsAdmin = function(e) {
+        window.enterAppAsAdmin = async function(e) {
             e.preventDefault();
-            const enteredPin = document.getElementById('admin-pin-input').value.trim();
-            if (enteredPin === cloudAdminPin) {
+            const email = document.getElementById('admin-email-input').value.trim();
+            const password = document.getElementById('admin-password-input').value;
+            const errorEl = document.getElementById('admin-login-error');
+            errorEl.classList.add('hidden');
+
+            try {
+                if (!cloudReady || !auth) throw new Error('Firebase todavía no está listo.');
+                if (auth.currentUser && auth.currentUser.isAnonymous) {
+                    await signOut(auth);
+                }
+                const cred = await signInWithEmailAndPassword(auth, email, password);
+                currentUser = cred.user;
+
+                // Cualquier cuenta de contraseña que uses para Peniel Next se considera Administrador.
+                // En las reglas definitivas restringiremos la escritura a este tipo de cuenta.
                 currentUserRole = 'admin';
                 sessionStorage.setItem('ja_session_role', 'admin');
-                document.getElementById('admin-pin-input').value = '';
-                document.getElementById('admin-pin-error').classList.add('hidden');
+                document.getElementById('admin-password-input').value = '';
                 applyRolePermissionsUI();
                 showToast('Acceso concedido como Administrador.', 'success');
-            } else {
-                document.getElementById('admin-pin-error').classList.remove('hidden');
+            } catch (err) {
+                console.error(err);
+                errorEl.textContent = 'Correo o contraseña incorrectos, o la cuenta aún no está configurada.';
+                errorEl.classList.remove('hidden');
             }
         };
 
-        window.logoutRole = function() {
-            currentUserRole = null;
-            sessionStorage.removeItem('ja_session_role');
-            applyRolePermissionsUI();
+        window.switchAccount = async function() {
+            try {
+                if (auth) await signOut(auth);
+                currentUser = null;
+                currentUserRole = null;
+                sessionStorage.removeItem('ja_session_role');
+                applyRolePermissionsUI();
+                selectLoginRole('admin');
+            } catch (err) {
+                console.error(err);
+            }
+        };
+
+        window.logoutRole = async function() {
+            try {
+                if (auth) await signOut(auth);
+                if (cloudReady && auth) {
+                    const cred = await signInAnonymously(auth);
+                    currentUser = cred.user;
+                }
+                currentUserRole = 'viewer';
+                sessionStorage.setItem('ja_session_role', 'viewer');
+                applyRolePermissionsUI();
+                showToast('Ahora estás en Modo Consulta.', 'info');
+            } catch (err) {
+                console.error(err);
+                currentUser = null;
+                currentUserRole = null;
+                sessionStorage.removeItem('ja_session_role');
+                applyRolePermissionsUI();
+            }
         };
 
         function applyRolePermissionsUI() {
@@ -2752,13 +2781,21 @@
 
         async function initCloudSync() {
             try {
-                const app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
+                if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                    const firebaseConfig = JSON.parse(__firebase_config);
+                    const app = initializeApp(firebaseConfig);
+                    auth = getAuth(app);
+                    db = getFirestore(app);
 
-                const cred = await signInAnonymously(auth);
-                currentUser = cred.user;
-                cloudReady = true;
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        const cred = await signInWithCustomToken(auth, __initial_auth_token);
+                        currentUser = cred.user;
+                    } else {
+                        const cred = await signInAnonymously(auth);
+                        currentUser = cred.user;
+                    }
+                    cloudReady = true;
+                }
             } catch (err) {
                 console.warn('Iniciando en modo local:', err);
                 cloudReady = false;
@@ -2818,57 +2855,6 @@
             const modal = document.getElementById('install-guide-modal');
             modal.classList.add('hidden');
             modal.classList.remove('flex');
-        };
-
-        window.openPinSettingsModal = function() {
-            if (!isAdmin()) return;
-            const modal = document.getElementById('pin-settings-modal');
-            document.getElementById('current-admin-pin-input').value = '';
-            document.getElementById('new-admin-pin-input').value = '';
-            document.getElementById('confirm-admin-pin-input').value = '';
-            document.getElementById('pin-change-error').classList.add('hidden');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        };
-
-        window.closePinSettingsModal = function() {
-            const modal = document.getElementById('pin-settings-modal');
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        };
-
-        window.saveNewAdminPin = async function(e) {
-            e.preventDefault();
-            if (!isAdmin()) return;
-            const currentPin = document.getElementById('current-admin-pin-input').value.trim();
-            const newPin = document.getElementById('new-admin-pin-input').value.trim();
-            const confirmPin = document.getElementById('confirm-admin-pin-input').value.trim();
-            const errorEl = document.getElementById('pin-change-error');
-
-            if (currentPin !== cloudAdminPin) {
-                errorEl.textContent = 'El PIN actual no es correcto.';
-                errorEl.classList.remove('hidden');
-                return;
-            }
-            if (newPin.length < 4 || newPin.length > 8) {
-                errorEl.textContent = 'El nuevo PIN debe tener entre 4 y 8 números.';
-                errorEl.classList.remove('hidden');
-                return;
-            }
-            if (newPin !== confirmPin) {
-                errorEl.textContent = 'La confirmación del nuevo PIN no coincide.';
-                errorEl.classList.remove('hidden');
-                return;
-            }
-
-            errorEl.classList.add('hidden');
-            cloudAdminPin = newPin;
-            if (cloudReady && currentUser && db) {
-                const configRef = doc(db, 'artifacts', appId, 'public', 'data', 'ja_settings', 'main');
-                await setDoc(configRef, { adminPin: newPin }, { merge: true });
-            }
-            closePinSettingsModal();
-            showToast('PIN de Administrador actualizado en la nube.', 'success');
         };
 
         function openResetModal() {
