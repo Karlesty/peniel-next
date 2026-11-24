@@ -1488,6 +1488,7 @@
                     errorEl.textContent = err.message.includes('no es la cuenta')
                         ? 'Esta cuenta no está autorizada para Modo Consulta.'
                         : 'Correo o contraseña incorrectos, o la cuenta aún no está configurada.';
+                }
                 errorEl.classList.remove('hidden');
             }
         };
@@ -1534,6 +1535,7 @@
                     errorEl.textContent = err.message.includes('no es la cuenta')
                         ? 'Esta cuenta no está autorizada como Administrador.'
                         : 'Correo o contraseña incorrectos, o la cuenta aún no está configurada.';
+                }
                 errorEl.classList.remove('hidden');
             }
         };
