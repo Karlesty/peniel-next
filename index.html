@@ -2802,25 +2802,6 @@
             cloudAppBrand = { appName, tagline: 'La próxima generación con propósito.', logoDataUrl };
             applyBrandingToUI();
 
-
-        window.resetBrandingToDefault = function() {
-            tempUploadedLogoData = '';
-            document.getElementById('branding-logo-url-input').value = '';
-            document.getElementById('branding-file-input').value = '';
-            document.getElementById('branding-app-name-input').value = 'Peniel Next';
-            updateBrandingPreview();
-        };
-
-        window.saveBrandingSettings = async function(e) {
-            e.preventDefault();
-            if (!isAdmin()) return;
-            const appName = document.getElementById('branding-app-name-input').value.trim() || 'Peniel Next';
-            const urlInput = document.getElementById('branding-logo-url-input').value.trim();
-            const logoDataUrl = urlInput || tempUploadedLogoData || '';
-
-            cloudAppBrand = { appName, tagline: 'La próxima generación con propósito.', logoDataUrl };
-            applyBrandingToUI();
-
             if (cloudReady && currentUser && db) {
                 const configRef = doc(db, 'artifacts', appId, 'public', 'data', 'ja_settings', 'main');
                 await setDoc(configRef, { appName, logoDataUrl }, { merge: true });
