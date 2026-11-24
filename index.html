@@ -1178,17 +1178,6 @@
             }
         };
 
-        const DEFAULT_MEMBERS = [
-            { id: 'm_1', name: 'Camila Andrea Gómez', birthDate: '2003-11-18', phone: '+57 310 451 2201', email: 'camila.gomez@email.com', bloodType: 'O+', eps: 'Sura', allergies: 'Ninguna', emergencyName: 'Marta Gómez', emergencyPhone: '+57 311 220 9988', baptized: true, baptismDate: '2018-06-15', gp: 'Maranatha', club: 'Guías Mayores', clubClass: 'Guía Mayor', roles: ['Dirección / Bienvenida', 'Servicio de Canto', 'Tema / Reflexión'], presentToday: true },
-            { id: 'm_2', name: 'Sebastián Rodríguez', birthDate: '2001-05-12', phone: '+57 315 882 3310', email: 'sebas.rod@email.com', bloodType: 'A+', eps: 'Sanitas', allergies: 'Ninguna', emergencyName: 'Carlos Rodríguez', emergencyPhone: '+57 314 550 1122', baptized: true, baptismDate: '2016-09-20', gp: 'Maranatha', club: 'Guías Mayores', clubClass: 'Guía Mayor Máster', roles: ['Dirección / Bienvenida', 'Tema / Reflexión', 'Oración'], presentToday: true },
-            { id: 'm_3', name: 'Valeria Morales', birthDate: '2005-11-26', phone: '+57 320 912 4405', email: 'valeria.m@email.com', bloodType: 'O-', eps: 'Compensar', allergies: 'Penicilina', emergencyName: 'Sandra Morales', emergencyPhone: '+57 321 440 7788', baptized: true, baptismDate: '2020-03-10', gp: 'Luz del Mundo', club: 'Guías Mayores', clubClass: 'Guía Mayor', roles: ['Servicio de Canto', 'Dinámica', 'Bienvenida'], presentToday: false },
-            { id: 'm_4', name: 'Daniel Felipe Castro', birthDate: '2004-08-03', phone: '+57 300 741 9920', email: 'dani.castro@email.com', bloodType: 'B+', eps: 'Nueva EPS', allergies: 'Ninguna', emergencyName: 'Jorge Castro', emergencyPhone: '+57 301 880 3344', baptized: true, baptismDate: '2019-11-02', gp: 'Luz del Mundo', club: 'Ninguno', clubClass: '', roles: ['Oración', 'Lectura Bíblica', 'Refrigerio'], presentToday: false },
-            { id: 'm_5', name: 'Mariana Torres', birthDate: '2012-04-14', phone: '+57 312 665 1109', email: '', bloodType: 'O+', eps: 'Sura', allergies: 'Ninguna', emergencyName: 'Lucía Torres', emergencyPhone: '+57 312 665 1109', baptized: true, baptismDate: '2023-07-22', gp: 'Maranatha', club: 'Conquistadores', clubClass: 'Explorador', roles: ['Oración', 'Lectura Bíblica', 'Bienvenida'], presentToday: true },
-            { id: 'm_6', name: 'Mateo Herrera', birthDate: '2011-11-09', phone: '+57 318 223 5541', email: '', bloodType: 'A-', eps: 'Sanitas', allergies: 'Polvo / Rinitis', emergencyName: 'Andrés Herrera', emergencyPhone: '+57 318 223 5541', baptized: false, baptismDate: '', gp: 'Luz del Mundo', club: 'Conquistadores', clubClass: 'Orientador', roles: ['Dinámica', 'Oración'], presentToday: true },
-            { id: 'm_7', name: 'Sofía Martínez', birthDate: '2018-02-28', phone: '+57 316 998 7741', email: '', bloodType: 'O+', eps: 'Compensar', allergies: 'Ninguna', emergencyName: 'Diana Martínez', emergencyPhone: '+57 316 998 7741', baptized: false, baptismDate: '', gp: 'Maranatha', club: 'Aventureros', clubClass: 'Constructores', roles: ['Oración', 'Bienvenida'], presentToday: true },
-            { id: 'm_8', name: 'Lucas Pérez', birthDate: '2019-07-19', phone: '+57 314 332 6650', email: '', bloodType: 'B+', eps: 'Sura', allergies: 'Maní', emergencyName: 'Pedro Pérez', emergencyPhone: '+57 314 332 6650', baptized: false, baptismDate: '', gp: 'Luz del Mundo', club: 'Aventureros', clubClass: 'Rayitos de Sol', roles: ['Oración'], presentToday: false }
-        ];
-
         const DEFAULT_CLUB_DATA = {
             'Aventureros': [
                 { id: 'act_a1', text: 'Especialidad de Seguridad Vial', completed: true },
@@ -1331,7 +1320,7 @@
             }
 
             if (!cloudReady || !db) {
-                members = JSON.parse(JSON.stringify(DEFAULT_MEMBERS));
+                members = [];
                 clubActivities = JSON.parse(JSON.stringify(DEFAULT_CLUB_DATA));
                 refreshAllUI();
                 if (!currentDraftSchedule) generateAutoSchedule(true);
@@ -1362,17 +1351,6 @@
             const membersCol = collection(db, 'artifacts', appId, 'public', 'data', 'ja_members');
             let firstMembersLoad = true;
             onSnapshot(membersCol, async (snapshot) => {
-                if (snapshot.empty && firstMembersLoad) {
-                    firstMembersLoad = false;
-                    // Sembrar datos iniciales la primera vez que se abre la app en la nube
-                    const batch = writeBatch(db);
-                    DEFAULT_MEMBERS.forEach(m => {
-                        const mRef = doc(db, 'artifacts', appId, 'public', 'data', 'ja_members', m.id);
-                        batch.set(mRef, m);
-                    });
-                    await batch.commit();
-                    return;
-                }
                 firstMembersLoad = false;
                 members = snapshot.docs.map(d => d.data());
                 members.sort((a, b) => a.name.localeCompare(b.name));
@@ -2797,43 +2775,6 @@
             cloudAppBrand = { appName, tagline: 'La próxima generación con propósito.', logoDataUrl };
             applyBrandingToUI();
 
-        async function initCloudSync() {
-            try {
-                if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-                    const firebaseConfig = JSON.parse(__firebase_config);
-                    const app = initializeApp(firebaseConfig);
-                    auth = getAuth(app);
-                    db = getFirestore(app);
-
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        const cred = await signInWithCustomToken(auth, __initial_auth_token);
-                        currentUser = cred.user;
-                    } else {
-                        currentUser = auth.currentUser || null;
-                    }
-                    cloudReady = true;
-                }
-            } catch (err) {
-                console.warn('Iniciando en modo local:', err);
-                cloudReady = false;
-            }
-
-            if (!cloudReady || !db) {
-                members = JSON.parse(JSON.stringify(DEFAULT_MEMBERS));
-                clubActivities = JSON.parse(JSON.stringify(DEFAULT_CLUB_DATA));
-                refreshAllUI();
-                if (!currentDraftSchedule) generateAutoSchedule(true);
-                return;
-            }
-
-            // 1. Escuchar Configuración (PIN Admin y Logo/Marca)
-            const configRef = doc(db, 'artifacts', appId, 'public', 'data', 'ja_settings', 'main');
-                await setDoc(configRef, { appName, logoDataUrl }, { merge: true });
-            }
-
-            closeBrandingModal();
-            showToast('Logo e ícono de Peniel Next actualizados para todos.', 'success');
-        };
 
         window.resetBrandingToDefault = function() {
             tempUploadedLogoData = '';
@@ -2876,23 +2817,7 @@
 
         function openResetModal() {
             if (!isAdmin()) return;
-            openConfirmModal(
-                'Cargar Datos Iniciales en la Nube',
-                'Se restaurarán los 14 miembros iniciales en la base de datos compartida. ¿Deseas continuar?',
-                async () => {
-                    if (cloudReady && currentUser && db) {
-                        const batch = writeBatch(db);
-                        members.forEach(m => {
-                            batch.delete(doc(db, 'artifacts', appId, 'public', 'data', 'ja_members', m.id));
-                        });
-                        DEFAULT_MEMBERS.forEach(m => {
-                            batch.set(doc(db, 'artifacts', appId, 'public', 'data', 'ja_members', m.id), m);
-                        });
-                        await batch.commit();
-                    }
-                    showToast('Datos iniciales sincronizados en la nube.', 'success');
-                }
-            );
+            showToast('La carga de datos de ejemplo está deshabilitada para proteger los datos reales.', 'info');
         }
 
         function openConfirmModal(title, message, onConfirmCallback) {
