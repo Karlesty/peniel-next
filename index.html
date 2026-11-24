@@ -1061,6 +1061,7 @@
         let auth = null;
         let currentUser = null;
         let cloudReady = false;
+        let firebaseInitPromise = null;
 
         // Estado principal de la aplicación
         let members = [];
@@ -1450,7 +1451,10 @@
             errorEl.classList.add('hidden');
 
             try {
-                if (!cloudReady || !auth) throw new Error('Firebase todavía no está listo.');
+                if (!cloudReady || !auth) {
+                    if (firebaseInitPromise) await firebaseInitPromise;
+                }
+                if (!cloudReady || !auth) throw new Error('Firebase no pudo inicializarse.');
                 if (auth.currentUser) await signOut(auth);
 
                 const cred = await signInWithEmailAndPassword(auth, email, password);
@@ -1473,9 +1477,17 @@
                 showToast('Ingresaste en Modo Consulta (Solo lectura).', 'info');
             } catch (err) {
                 console.error(err);
-                errorEl.textContent = err.message.includes('no es la cuenta')
-                    ? 'Esta cuenta no está autorizada para Modo Consulta.'
-                    : 'Correo o contraseña incorrectos, o la cuenta aún no está configurada.';
+                const code = err?.code || '';
+                if (code === 'auth/unauthorized-domain') {
+                    errorEl.textContent = 'Firebase está bloqueando este sitio. Hay que autorizar karlesty.github.io en Authentication > Settings > Authorized domains.';
+                } else if (code === 'auth/operation-not-allowed') {
+                    errorEl.textContent = 'El acceso con correo y contraseña no está habilitado en Firebase Authentication.';
+                } else if (code === 'auth/network-request-failed') {
+                    errorEl.textContent = 'No se pudo conectar con Firebase. Revisa tu conexión a Internet e inténtalo nuevamente.';
+                } else {
+                    errorEl.textContent = err.message.includes('no es la cuenta')
+                        ? 'Esta cuenta no está autorizada para Modo Consulta.'
+                        : 'Correo o contraseña incorrectos, o la cuenta aún no está configurada.';
                 errorEl.classList.remove('hidden');
             }
         };
@@ -1488,7 +1500,10 @@
             errorEl.classList.add('hidden');
 
             try {
-                if (!cloudReady || !auth) throw new Error('Firebase todavía no está listo.');
+                if (!cloudReady || !auth) {
+                    if (firebaseInitPromise) await firebaseInitPromise;
+                }
+                if (!cloudReady || !auth) throw new Error('Firebase no pudo inicializarse.');
                 if (auth.currentUser && auth.currentUser.isAnonymous) {
                     await signOut(auth);
                 }
@@ -1508,7 +1523,17 @@
                 showToast('Acceso concedido como Administrador.', 'success');
             } catch (err) {
                 console.error(err);
-                errorEl.textContent = err.message.includes('no es la cuenta') ? 'Esta cuenta no está autorizada como Administrador.' : 'Correo o contraseña incorrectos, o la cuenta aún no está configurada.';
+                const code = err?.code || '';
+                if (code === 'auth/unauthorized-domain') {
+                    errorEl.textContent = 'Firebase está bloqueando este sitio. Hay que autorizar karlesty.github.io en Authentication > Settings > Authorized domains.';
+                } else if (code === 'auth/operation-not-allowed') {
+                    errorEl.textContent = 'El acceso con correo y contraseña no está habilitado en Firebase Authentication.';
+                } else if (code === 'auth/network-request-failed') {
+                    errorEl.textContent = 'No se pudo conectar con Firebase. Revisa tu conexión a Internet e inténtalo nuevamente.';
+                } else {
+                    errorEl.textContent = err.message.includes('no es la cuenta')
+                        ? 'Esta cuenta no está autorizada como Administrador.'
+                        : 'Correo o contraseña incorrectos, o la cuenta aún no está configurada.';
                 errorEl.classList.remove('hidden');
             }
         };
@@ -2922,7 +2947,7 @@
         initEventListeners();
         setDefaultScheduleDate();
         applyRolePermissionsUI();
-        initCloudSync();
+        firebaseInitPromise = initCloudSync();
     </script>
 </body>
 </html>
