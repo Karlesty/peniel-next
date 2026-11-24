@@ -94,16 +94,25 @@
             </div>
 
             <!-- Formulario Consulta (Cliente) -->
-            <div id="login-viewer-panel" class="space-y-4">
+            <form id="login-viewer-panel" onsubmit="enterAppAsViewer(event)" class="space-y-4">
                 <div class="p-4 rounded-2xl bg-slate-800/60 border border-slate-700/80 text-xs text-slate-300 space-y-1.5">
-                    <p class="font-bold text-white flex items-center gap-1.5"><i class="fas fa-circle-info text-blue-400"></i> Acceso para Miembros y Directiva</p>
-                    <p>Consulta las programaciones de Sociedad de Jóvenes, Grupos Pequeños, cumpleañeros del mes y clubes en tiempo real sin riesgo de modificar datos.</p>
+                    <p class="font-bold text-white flex items-center gap-1.5"><i class="fas fa-circle-info text-blue-400"></i> Acceso de consulta</p>
+                    <p>Ingresa con la cuenta de consulta para ver la información sin posibilidad de modificarla.</p>
                 </div>
-                <button onclick="enterAppAsViewer()" class="w-full py-3.5 px-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm rounded-2xl shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2">
-                    <span>Ingresar a Consultar</span>
-                    <i class="fas fa-arrow-right"></i>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Correo de consulta</label>
+                    <input type="email" id="viewer-email-input" autocomplete="username" required placeholder="consulta@ejemplo.com" class="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-2xl text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-blue-400">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Contraseña</label>
+                    <input type="password" id="viewer-password-input" autocomplete="current-password" required placeholder="Tu contraseña de consulta" class="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-2xl text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-blue-400">
+                    <p id="viewer-login-error" class="hidden text-xs text-red-400 font-semibold mt-1.5 text-center"></p>
+                </div>
+                <button type="submit" class="w-full py-3.5 px-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm rounded-2xl shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2">
+                    <i class="fas fa-eye"></i>
+                    <span>Entrar en Modo Consulta</span>
                 </button>
-            </div>
+            </form>
 
             <!-- Formulario Administrador -->
             <form id="login-admin-panel" onsubmit="enterAppAsAdmin(event)" class="hidden space-y-4">
@@ -1041,7 +1050,7 @@
     <!-- ========================================================== -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot, collection, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // ==========================================
@@ -1300,15 +1309,22 @@
                 auth = getAuth(app);
                 db = getFirestore(app);
 
-                if (auth.currentUser) {
-                    currentUser = auth.currentUser;
-                } else {
-                    const cred = await signInAnonymously(auth);
-                    currentUser = cred.user;
-                }
+                currentUser = auth.currentUser || null;
                 cloudReady = true;
-                currentUserRole = currentUser && !currentUser.isAnonymous ? 'admin' : 'viewer';
-                sessionStorage.setItem('ja_session_role', currentUserRole);
+
+                // El rol se determina por el UID real de Firebase, no por un valor del navegador.
+                const ADMIN_UID = 'mfz5I6gL6QT4LLUtWIsdQyhKG312';
+                const VIEWER_UID = 'kNRbaEPzJBXaHCUISeOf40lQR3D2';
+                if (currentUser && currentUser.uid === ADMIN_UID) {
+                    currentUserRole = 'admin';
+                    sessionStorage.setItem('ja_session_role', 'admin');
+                } else if (currentUser && currentUser.uid === VIEWER_UID) {
+                    currentUserRole = 'viewer';
+                    sessionStorage.setItem('ja_session_role', 'viewer');
+                } else {
+                    currentUserRole = null;
+                    sessionStorage.removeItem('ja_session_role');
+                }
             } catch (err) {
                 console.warn('Iniciando en modo local:', err);
                 cloudReady = false;
@@ -1448,18 +1464,29 @@
             }
         };
 
-        window.enterAppAsViewer = async function() {
+        window.enterAppAsViewer = async function(e) {
+            if (e) e.preventDefault();
+            const email = document.getElementById('viewer-email-input').value.trim();
+            const password = document.getElementById('viewer-password-input').value;
+            const errorEl = document.getElementById('viewer-login-error');
+            errorEl.classList.add('hidden');
+
             try {
                 if (!cloudReady || !auth) throw new Error('Firebase todavía no está listo.');
-                if (!auth.currentUser || !auth.currentUser.isAnonymous) {
+                if (auth.currentUser) await signOut(auth);
+
+                const cred = await signInWithEmailAndPassword(auth, email, password);
+                currentUser = cred.user;
+
+                const VIEWER_UID = 'kNRbaEPzJBXaHCUISeOf40lQR3D2';
+                if (currentUser.uid !== VIEWER_UID) {
                     await signOut(auth);
-                    const cred = await signInAnonymously(auth);
-                    currentUser = cred.user;
-                } else {
-                    currentUser = auth.currentUser;
+                    throw new Error('Esta cuenta no es la cuenta autorizada para consulta.');
                 }
+
                 currentUserRole = 'viewer';
                 sessionStorage.setItem('ja_session_role', 'viewer');
+                document.getElementById('viewer-password-input').value = '';
                 applyRolePermissionsUI();
                 if (savedSchedules.length > 0) {
                     currentDraftSchedule = JSON.parse(JSON.stringify(savedSchedules[0]));
@@ -1468,7 +1495,10 @@
                 showToast('Ingresaste en Modo Consulta (Solo lectura).', 'info');
             } catch (err) {
                 console.error(err);
-                showToast('No fue posible entrar en modo consulta.', 'error');
+                errorEl.textContent = err.message.includes('no es la cuenta')
+                    ? 'Esta cuenta no está autorizada para Modo Consulta.'
+                    : 'Correo o contraseña incorrectos, o la cuenta aún no está configurada.';
+                errorEl.classList.remove('hidden');
             }
         };
 
@@ -1487,8 +1517,12 @@
                 const cred = await signInWithEmailAndPassword(auth, email, password);
                 currentUser = cred.user;
 
-                // Cualquier cuenta de contraseña que uses para Peniel Next se considera Administrador.
-                // En las reglas definitivas restringiremos la escritura a este tipo de cuenta.
+                const ADMIN_UID = 'mfz5I6gL6QT4LLUtWIsdQyhKG312';
+                if (currentUser.uid !== ADMIN_UID) {
+                    await signOut(auth);
+                    throw new Error('Esta cuenta no es la cuenta autorizada de administrador.');
+                }
+
                 currentUserRole = 'admin';
                 sessionStorage.setItem('ja_session_role', 'admin');
                 document.getElementById('admin-password-input').value = '';
@@ -1496,7 +1530,7 @@
                 showToast('Acceso concedido como Administrador.', 'success');
             } catch (err) {
                 console.error(err);
-                errorEl.textContent = 'Correo o contraseña incorrectos, o la cuenta aún no está configurada.';
+                errorEl.textContent = err.message.includes('no es la cuenta') ? 'Esta cuenta no está autorizada como Administrador.' : 'Correo o contraseña incorrectos, o la cuenta aún no está configurada.';
                 errorEl.classList.remove('hidden');
             }
         };
@@ -1515,23 +1549,7 @@
         };
 
         window.logoutRole = async function() {
-            try {
-                if (auth) await signOut(auth);
-                if (cloudReady && auth) {
-                    const cred = await signInAnonymously(auth);
-                    currentUser = cred.user;
-                }
-                currentUserRole = 'viewer';
-                sessionStorage.setItem('ja_session_role', 'viewer');
-                applyRolePermissionsUI();
-                showToast('Ahora estás en Modo Consulta.', 'info');
-            } catch (err) {
-                console.error(err);
-                currentUser = null;
-                currentUserRole = null;
-                sessionStorage.removeItem('ja_session_role');
-                applyRolePermissionsUI();
-            }
+            await window.switchAccount();
         };
 
         function applyRolePermissionsUI() {
@@ -2791,8 +2809,7 @@
                         const cred = await signInWithCustomToken(auth, __initial_auth_token);
                         currentUser = cred.user;
                     } else {
-                        const cred = await signInAnonymously(auth);
-                        currentUser = cred.user;
+                        currentUser = auth.currentUser || null;
                     }
                     cloudReady = true;
                 }
