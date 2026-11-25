@@ -2843,15 +2843,16 @@
             }
 
             panel.classList.remove('hidden');
-            const clubMembers = members.filter(m => m.club === activeClubTab);
+
+            // Los cargos pueden asignarse a cualquier persona de la base de datos,
+            // pero para cargos de liderazgo se exige tener 16 años o más.
+            const eligibleMembers = members.filter(m => calculateExactAge(m.birthDate) >= 16);
             const assigned = {};
-            clubMembers.forEach(m => {
+            members.forEach(m => {
                 const role = m.clubRoles && m.clubRoles[activeClubTab];
                 if (role) assigned[role] = m.id;
             });
 
-            // En Ministerio JA, estos tres cargos se llenan automáticamente
-            // con los directores registrados en sus respectivos clubes.
             const autoDirectorRoles = {
                 'Director de Aventureros': 'Aventureros',
                 'Director de Conquistadores': 'Conquistadores',
@@ -2864,19 +2865,38 @@
             };
 
             const autoRoles = activeClubTab === 'Ministerio JA' ? Object.keys(autoDirectorRoles) : [];
-            const allRoles = [...roles, ...autoRoles];
 
             panel.innerHTML = `
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
                     <div>
                         <h3 class="font-bold text-slate-900 text-lg">Cargos del ${activeClubTab}</h3>
-                        <p class="text-xs text-slate-500">${activeClubTab === 'Ministerio JA' ? 'Asigna los cargos de Ministerio JA. Los directores de Aventureros, Conquistadores y Guías Mayores se completan automáticamente.' : 'Asigna los cargos a los integrantes correspondientes.'}</p>
+                        <p class="text-xs text-slate-500">${activeClubTab === 'Ministerio JA' ? 'Asigna los cargos de Ministerio JA. Los directores de Aventureros, Conquistadores y Guías Mayores se completan automáticamente.' : 'Asigna los cargos a personas de la base de datos que tengan 16 años o más.'}</p>
                     </div>
                 </div>
+
+                ${activeClubTab === 'Ministerio JA' || activeClubTab === 'Grupo Pequeño' ? `
+                <div class="mb-4 p-4 rounded-xl bg-blue-50 border border-blue-200">
+                    <div class="flex items-start gap-3">
+                        <div class="w-9 h-9 rounded-lg bg-blue-700 text-white flex items-center justify-center shrink-0"><i class="fas fa-user-plus text-xs"></i></div>
+                        <div class="flex-1">
+                            <p class="text-sm font-bold text-blue-900">¿La persona no está en la base de datos?</p>
+                            <p class="text-xs text-blue-700 mt-1 mb-3">Puedes registrarla aquí. Se agregará también a la Base de Datos General para que después puedas completar o editar su información.</p>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <input id="leadership-new-name" type="text" placeholder="Nombre completo" class="px-3 py-2 bg-white border border-blue-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <input id="leadership-new-birthdate" type="date" title="Fecha de nacimiento" class="px-3 py-2 bg-white border border-blue-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <button type="button" onclick="addLeadershipPerson()" class="px-3 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer ${!isAdmin() ? 'hidden' : ''}">
+                                    <i class="fas fa-user-plus mr-1"></i> Agregar a la base de datos
+                                </button>
+                            </div>
+                            <p class="text-[10px] text-blue-600 mt-2">Para asignarle un cargo, la persona debe tener registrada una fecha de nacimiento que confirme que tiene 16 años o más.</p>
+                        </div>
+                    </div>
+                </div>` : ''}
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     ${roles.map(role => {
                         const selectedId = assigned[role] || '';
-                        const options = clubMembers.map(m => `<option value="${m.id}" ${selectedId === m.id ? 'selected' : ''}>${m.name}</option>`).join('');
+                        const options = eligibleMembers.map(m => `<option value="${m.id}" ${selectedId === m.id ? 'selected' : ''}>${m.name} (${calculateExactAge(m.birthDate)} años)</option>`).join('');
                         return `
                             <div class="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200">
                                 <div class="w-9 h-9 rounded-lg bg-slate-900 text-white flex items-center justify-center shrink-0"><i class="fas fa-user-tie text-xs"></i></div>
@@ -2886,6 +2906,7 @@
                                         <option value="">Sin asignar</option>
                                         ${options}
                                     </select>
+                                    ${eligibleMembers.length === 0 ? '<p class="text-[10px] text-red-500 mt-1">No hay personas de 16 años o más registradas.</p>' : ''}
                                 </div>
                             </div>
                         `;
@@ -2909,13 +2930,54 @@
             `;
         }
 
+        async function addLeadershipPerson() {
+            if (!isAdmin()) return;
+            if (activeClubTab !== 'Ministerio JA' && activeClubTab !== 'Grupo Pequeño') return;
+
+            const nameInput = document.getElementById('leadership-new-name');
+            const birthInput = document.getElementById('leadership-new-birthdate');
+            const name = (nameInput?.value || '').trim();
+            const birthDate = birthInput?.value || '';
+
+            if (!name) {
+                showToast('Escribe el nombre completo.', 'error');
+                return;
+            }
+            if (!birthDate) {
+                showToast('Registra la fecha de nacimiento para poder verificar la edad.', 'error');
+                return;
+            }
+            if (calculateExactAge(birthDate) < 16) {
+                showToast('Los cargos de liderazgo requieren 16 años o más.', 'error');
+                return;
+            }
+
+            const newMember = {
+                id: 'm_' + Date.now(),
+                name,
+                documentType: '', documentNumber: '', birthDate,
+                phone: '', email: '', bloodType: '', eps: '',
+                emergencyName: '', emergencyPhone: '', allergies: 'Ninguna',
+                baptized: false, baptismDate: '', gp: '',
+                club: activeClubTab, roles: [],
+                gmInvestitureStatus: '', gmWorksClub: '', gmClubRole: '',
+                clubClass: '', presentToday: false,
+                clubRoles: {}
+            };
+
+            members.unshift(newMember);
+            await syncMemberToCloud(newMember);
+            showToast('Persona agregada a la Base de Datos General.', 'success');
+            refreshAllUI();
+            selectClubTab(activeClubTab);
+        }
+
         function updateClubRole(role, memberId) {
             if (!isAdmin()) return;
             const club = activeClubTab;
-            const clubMembers = members.filter(m => m.club === club);
 
             // Quitar este cargo de cualquier integrante que lo tuviera.
-            clubMembers.forEach(m => {
+            members.forEach(m => {
                 if (m.clubRoles && m.clubRoles[club] === role) {
                     m.clubRoles = { ...m.clubRoles };
                     delete m.clubRoles[club];
@@ -2926,7 +2988,14 @@
             if (memberId) {
                 const selected = members.find(m => m.id === memberId);
                 if (selected) {
-                    // Un integrante solo ocupa un cargo dentro de este club.
+                    // Todos los cargos de liderazgo requieren 16 años o más.
+                    if (calculateExactAge(selected.birthDate) < 16) {
+                        showToast('Solo se pueden asignar cargos a personas de 16 años o más.', 'error');
+                        renderClubLeadershipPanel();
+                        return;
+                    }
+
+                    // Una persona solo ocupa un cargo dentro de este club/ministerio.
                     selected.clubRoles = { ...(selected.clubRoles || {}) };
                     Object.keys(selected.clubRoles).forEach(clubKey => {
                         if (clubKey === club) delete selected.clubRoles[clubKey];
@@ -2935,7 +3004,7 @@
                     syncMemberToCloud(selected);
                 }
             }
-            renderClubSection();
+            refreshAllUI();
         }
 
         function toggleClubAttendance(memberId) {
