@@ -1143,6 +1143,10 @@
         let activeClubTab = 'Aventureros';
         let activeClubClassFilter = '';
 
+        // Cambios de cargos pendientes: solo se guardan en Firebase al pulsar Guardar.
+        let pendingClubAssignments = {};
+        let pendingClubAssignmentsTab = null;
+
         const ALL_ROLES = [
             'Dirección / Bienvenida',
             'Bienvenida',
@@ -2662,6 +2666,7 @@
         function selectClubTab(clubName) {
             activeClubTab = clubName;
             activeClubClassFilter = '';
+            initializePendingClubAssignments();
 
             // Actualizar botones de pestaña
             document.querySelectorAll('.club-tab-btn').forEach(btn => {
@@ -2816,6 +2821,16 @@
             renderClubSection();
         }
 
+        function initializePendingClubAssignments() {
+            if (pendingClubAssignmentsTab === activeClubTab) return;
+            pendingClubAssignments = {};
+            members.forEach(m => {
+                const role = m.clubRoles && m.clubRoles[activeClubTab];
+                if (role) pendingClubAssignments[role] = m.id;
+            });
+            pendingClubAssignmentsTab = activeClubTab;
+        }
+
         function renderClubLeadershipPanel() {
             const panel = document.getElementById('club-leadership-panel');
             if (!panel) return;
@@ -2842,16 +2857,11 @@
                 return;
             }
 
+            initializePendingClubAssignments();
             panel.classList.remove('hidden');
 
-            // Los cargos pueden asignarse a cualquier persona de la base de datos,
-            // pero para cargos de liderazgo se exige tener 16 años o más.
             const eligibleMembers = members.filter(m => calculateExactAge(m.birthDate) >= 16);
-            const assigned = {};
-            members.forEach(m => {
-                const role = m.clubRoles && m.clubRoles[activeClubTab];
-                if (role) assigned[role] = m.id;
-            });
+            const assigned = { ...pendingClubAssignments };
 
             const autoDirectorRoles = {
                 'Director de Aventureros': 'Aventureros',
@@ -2872,6 +2882,15 @@
                         <h3 class="font-bold text-slate-900 text-lg">Cargos del ${activeClubTab}</h3>
                         <p class="text-xs text-slate-500">${activeClubTab === 'Ministerio JA' ? 'Asigna los cargos de Ministerio JA. Los directores de Aventureros, Conquistadores y Guías Mayores se completan automáticamente.' : 'Asigna los cargos a personas de la base de datos que tengan 16 años o más.'}</p>
                     </div>
+                    ${isAdmin() ? `
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button type="button" onclick="clearClubAssignments()" class="px-3.5 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold transition-colors cursor-pointer">
+                            <i class="fas fa-trash-can mr-1"></i> Borrar todo
+                        </button>
+                        <button type="button" onclick="saveClubAssignments()" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-colors cursor-pointer">
+                            <i class="fas fa-floppy-disk mr-1"></i> Guardar
+                        </button>
+                    </div>` : ''}
                 </div>
 
                 ${activeClubTab === 'Ministerio JA' || activeClubTab === 'Grupo Pequeño' ? `
@@ -2974,37 +2993,99 @@
 
         function updateClubRole(role, memberId) {
             if (!isAdmin()) return;
-            const club = activeClubTab;
-
-            // Quitar este cargo de cualquier integrante que lo tuviera.
-            members.forEach(m => {
-                if (m.clubRoles && m.clubRoles[club] === role) {
-                    m.clubRoles = { ...m.clubRoles };
-                    delete m.clubRoles[club];
-                    syncMemberToCloud(m);
-                }
-            });
+            initializePendingClubAssignments();
 
             if (memberId) {
                 const selected = members.find(m => m.id === memberId);
-                if (selected) {
-                    // Todos los cargos de liderazgo requieren 16 años o más.
-                    if (calculateExactAge(selected.birthDate) < 16) {
-                        showToast('Solo se pueden asignar cargos a personas de 16 años o más.', 'error');
-                        renderClubLeadershipPanel();
-                        return;
-                    }
-
-                    // Una persona solo ocupa un cargo dentro de este club/ministerio.
-                    selected.clubRoles = { ...(selected.clubRoles || {}) };
-                    Object.keys(selected.clubRoles).forEach(clubKey => {
-                        if (clubKey === club) delete selected.clubRoles[clubKey];
-                    });
-                    selected.clubRoles[club] = role;
-                    syncMemberToCloud(selected);
+                if (!selected) return;
+                if (calculateExactAge(selected.birthDate) < 16) {
+                    showToast('Solo se pueden asignar cargos a personas de 16 años o más.', 'error');
+                    renderClubLeadershipPanel();
+                    return;
                 }
+
+                // Una persona solo puede ocupar un cargo dentro del mismo ministerio.
+                Object.keys(pendingClubAssignments).forEach(existingRole => {
+                    if (pendingClubAssignments[existingRole] === memberId && existingRole !== role) {
+                        delete pendingClubAssignments[existingRole];
+                    }
+                });
+                pendingClubAssignments[role] = memberId;
+            } else {
+                delete pendingClubAssignments[role];
             }
-            refreshAllUI();
+
+            renderClubLeadershipPanel();
+        }
+
+        async function saveClubAssignments() {
+            if (!isAdmin()) return;
+            initializePendingClubAssignments();
+
+            const club = activeClubTab;
+            const changes = [];
+
+            members.forEach(m => {
+                const currentRole = m.clubRoles && m.clubRoles[club];
+                const newRole = Object.keys(pendingClubAssignments).find(role => pendingClubAssignments[role] === m.id) || '';
+                if (currentRole !== newRole) {
+                    const updated = { ...m, clubRoles: { ...(m.clubRoles || {}) } };
+                    if (newRole) updated.clubRoles[club] = newRole;
+                    else delete updated.clubRoles[club];
+                    changes.push(updated);
+                }
+            });
+
+            try {
+                for (const updated of changes) {
+                    const index = members.findIndex(m => m.id === updated.id);
+                    if (index !== -1) members[index] = updated;
+                    await syncMemberToCloud(updated);
+                }
+                pendingClubAssignmentsTab = null;
+                initializePendingClubAssignments();
+                refreshAllUI();
+                selectClubTab(club);
+                showToast(changes.length ? 'Cargos guardados correctamente en la aplicación y en Firebase.' : 'No había cambios pendientes por guardar.', 'success');
+            } catch (error) {
+                console.error('Error al guardar cargos:', error);
+                showToast('No se pudieron guardar todos los cargos. Revisa tu conexión e inténtalo de nuevo.', 'error');
+            }
+        }
+
+        async function clearClubAssignments() {
+            if (!isAdmin()) return;
+            initializePendingClubAssignments();
+            const club = activeClubTab;
+
+            const confirmed = window.confirm(`¿Deseas borrar todos los cargos asignados de ${club}? Esta acción se guardará en la base de datos.`);
+            if (!confirmed) return;
+
+            pendingClubAssignments = {};
+            const changes = [];
+
+            members.forEach(m => {
+                if (m.clubRoles && m.clubRoles[club]) {
+                    const updated = { ...m, clubRoles: { ...(m.clubRoles || {}) } };
+                    delete updated.clubRoles[club];
+                    changes.push(updated);
+                }
+            });
+
+            try {
+                for (const updated of changes) {
+                    const index = members.findIndex(m => m.id === updated.id);
+                    if (index !== -1) members[index] = updated;
+                    await syncMemberToCloud(updated);
+                }
+                pendingClubAssignmentsTab = club;
+                refreshAllUI();
+                selectClubTab(club);
+                showToast(changes.length ? `Todos los cargos de ${club} fueron borrados.` : `No había cargos asignados en ${club}.`, 'success');
+            } catch (error) {
+                console.error('Error al borrar cargos:', error);
+                showToast('No se pudieron borrar todos los cargos. Revisa tu conexión e inténtalo de nuevo.', 'error');
+            }
         }
 
         function toggleClubAttendance(memberId) {
