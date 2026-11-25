@@ -188,7 +188,7 @@
             </button>
             <button onclick="switchView('clubs', 'Aventureros')" data-mobile-nav="clubs" class="mobile-bottom-btn flex flex-col items-center justify-center py-1 px-3 rounded-xl">
                 <i class="fas fa-campground text-base"></i>
-                <span class="text-[10px] font-semibold mt-0.5">Clubes</span>
+                <span class="text-[10px] font-semibold mt-0.5">Ministerios</span>
             </button>
         </nav>
 
@@ -252,9 +252,21 @@
                     </button>
 
                     <div class="pt-4 pb-1">
-                        <p class="px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Clubes Juveniles</p>
+                        <p class="px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Ministerios Juveniles</p>
                     </div>
 
+                    <button data-view="clubs" data-club="Ministerio JA" class="nav-btn w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-white transition-all">
+                        <div class="flex items-center gap-3.5">
+                            <span class="w-5 h-5 rounded-md bg-blue-700 border border-blue-400 flex items-center justify-center text-[10px] text-white font-bold">JA</span>
+                            <span>Ministerio JA</span>
+                        </div>
+                    </button>
+                    <button data-view="clubs" data-club="Grupo Pequeño" class="nav-btn w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-white transition-all">
+                        <div class="flex items-center gap-3.5">
+                            <span class="w-5 h-5 rounded-md bg-violet-700 border border-violet-400 flex items-center justify-center text-[10px] text-white font-bold">GP</span>
+                            <span>Grupo Pequeño</span>
+                        </div>
+                    </button>
                     <button data-view="clubs" data-club="Aventureros" class="nav-btn w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-white transition-all">
                         <div class="flex items-center gap-3.5">
                             <span class="w-5 h-5 rounded-md bg-red-900 border border-red-600 flex items-center justify-center text-[10px] text-white font-bold">A</span>
@@ -703,7 +715,15 @@
             <!-- ========================================== -->
             <section id="view-clubs" class="view-section hidden space-y-6 fade-in">
                 <!-- Selector de Pestañas de Clubes -->
-                <div class="grid grid-cols-3 gap-3 bg-white p-2 rounded-2xl shadow-xs border border-slate-200/80">
+                <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 bg-white p-2 rounded-2xl shadow-xs border border-slate-200/80">
+                    <button onclick="selectClubTab('Ministerio JA')" id="tab-club-Ministerio JA" class="club-tab-btn py-3 px-4 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer">
+                        <span class="w-6 h-6 rounded-md bg-blue-700 text-white flex items-center justify-center text-[10px] font-black">JA</span>
+                        <span>Ministerio JA</span>
+                    </button>
+                    <button onclick="selectClubTab('Grupo Pequeño')" id="tab-club-Grupo Pequeño" class="club-tab-btn py-3 px-4 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer">
+                        <span class="w-6 h-6 rounded-md bg-violet-700 text-white flex items-center justify-center text-[10px] font-black">GP</span>
+                        <span>Grupo Pequeño</span>
+                    </button>
                     <button onclick="selectClubTab('Aventureros')" id="tab-club-Aventureros" class="club-tab-btn py-3 px-4 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer">
                         <span class="w-6 h-6 rounded-md bg-red-900 text-white flex items-center justify-center text-xs font-black">A</span>
                         <span>Aventureros</span>
@@ -743,6 +763,9 @@
                     </div>
                 </div>
 
+                <!-- Panel de cargos de Ministerios Juveniles -->
+                <div id="club-leadership-panel" class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80 hidden"></div>
+
                 <!-- Contenido del Club: Asistencia y Clases Progresivas -->
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
                     <!-- Columna Izquierda: Control de Asistencia Rápida y Clases Progresivas -->
@@ -763,7 +786,7 @@
                     </div>
 
                     <!-- Columna Derecha: Especialidades, Requisitos y Planificación del Club -->
-                    <div class="lg:col-span-5 space-y-6">
+                    <div id="club-secondary-panel" class="lg:col-span-5 space-y-6">
                         <!-- Clases Progresivas del Club -->
                         <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80">
                             <h3 class="font-bold text-slate-900 text-lg mb-1">Clases Progresivas</h3>
@@ -1016,12 +1039,41 @@
                     </div>
                     <div>
                         <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Club JA</label>
-                        <select id="member-club" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+                        <select id="member-club" onchange="toggleGMFields()" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm">
                             <option value="Ninguno">Ninguno (Solo SJ / GP)</option>
                             <option value="Aventureros">Aventureros</option>
                             <option value="Conquistadores">Conquistadores</option>
                             <option value="Guías Mayores">Guías Mayores</option>
                         </select>
+                    <div id="gm-member-fields" class="hidden mt-3 p-3 rounded-xl bg-emerald-50/60 border border-emerald-100 space-y-3">
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-emerald-900 mb-1">Estado de Investidura</label>
+                            <select id="member-gm-investiture" class="w-full px-3.5 py-2 bg-white border border-emerald-200 rounded-xl text-sm">
+                                <option value="Investido">Investido</option>
+                                <option value="Trabajando para investidura">Trabajando para investidura</option>
+                                <option value="No investido">No investido</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-emerald-900 mb-1">¿Trabaja en un club?</label>
+                            <select id="member-gm-works-club" onchange="toggleGMClubRoleField()" class="w-full px-3.5 py-2 bg-white border border-emerald-200 rounded-xl text-sm">
+                                <option value="Ninguno">Ninguno</option>
+                                <option value="Aventureros">Aventureros</option>
+                                <option value="Conquistadores">Conquistadores</option>
+                            </select>
+                        </div>
+                        <div id="gm-club-role-wrapper" class="hidden">
+                            <label class="block text-xs font-bold uppercase text-emerald-900 mb-1">Cargo en ese club</label>
+                            <select id="member-gm-club-role" class="w-full px-3.5 py-2 bg-white border border-emerald-200 rounded-xl text-sm">
+                                <option value="">Seleccionar cargo</option>
+                                <option value="Director(a)">Director(a)</option>
+                                <option value="Sub Director(a)">Sub Director(a)</option>
+                                <option value="Secretario(a)">Secretario(a)</option>
+                                <option value="Tesorero(a)">Tesorero(a)</option>
+                                <option value="Consejero(a)">Consejero(a)</option>
+                            </select>
+                        </div>
+                    </div>
                     </div>
                 </div>
             </div>
@@ -1089,6 +1141,7 @@
         let clubActivities = {};
         let currentDraftSchedule = null;
         let activeClubTab = 'Aventureros';
+        let activeClubClassFilter = '';
 
         const ALL_ROLES = [
             'Dirección / Bienvenida',
@@ -1160,6 +1213,20 @@
         };
 
         const CLUB_CONFIG = {
+            'Ministerio JA': {
+                title: 'Ministerio JA',
+                ageRange: 'Ministerio Juvenil',
+                motto: 'Servicio, liderazgo y misión.',
+                bannerClass: 'bg-gradient-to-r from-blue-950 via-blue-900 to-indigo-800',
+                classes: []
+            },
+            'Grupo Pequeño': {
+                title: 'Grupo Pequeño',
+                ageRange: 'Ministerio de grupos pequeños',
+                motto: 'Crecemos juntos en comunión, misión y servicio.',
+                bannerClass: 'bg-gradient-to-r from-violet-950 via-violet-900 to-purple-800',
+                classes: []
+            },
             'Aventureros': {
                 title: 'Club de Aventureros',
                 ageRange: '6 a 9 años',
@@ -1200,6 +1267,8 @@
         };
 
         const DEFAULT_CLUB_DATA = {
+            'Ministerio JA': [],
+            'Grupo Pequeño': [],
             'Aventureros': [
                 { id: 'act_a1', text: 'Especialidad de Seguridad Vial', completed: true },
                 { id: 'act_a2', text: 'Repaso del Voto y la Ley del Aventurero', completed: false }
@@ -2019,6 +2088,9 @@
                 document.getElementById('member-baptism-date').value = m.baptismDate || '';
                 document.getElementById('member-gp').value = m.gp || '';
                 document.getElementById('member-club').value = m.club || 'Ninguno';
+                document.getElementById('member-gm-investiture').value = m.gmInvestitureStatus || 'No investido';
+                document.getElementById('member-gm-works-club').value = m.gmWorksClub || 'Ninguno';
+                document.getElementById('member-gm-club-role').value = m.gmClubRole || '';
 
                 document.querySelectorAll('input[name="member-roles"]').forEach(cb => {
                     cb.checked = m.roles && m.roles.includes(cb.value);
@@ -2030,6 +2102,9 @@
                 document.getElementById('member-document-number').value = '';
                 document.getElementById('member-blood').value = 'O+';
                 document.getElementById('member-allergies').value = 'Ninguna';
+                document.getElementById('member-gm-investiture').value = 'No investido';
+                document.getElementById('member-gm-works-club').value = 'Ninguno';
+                document.getElementById('member-gm-club-role').value = '';
                 document.getElementById('member-baptized').checked = false;
                 document.querySelectorAll('input[name="member-roles"]').forEach(cb => {
                     cb.checked = ['Oración', 'Bienvenida'].includes(cb.value);
@@ -2038,8 +2113,27 @@
 
             updateCalculatedAgePreview();
             toggleBaptismDateInput();
+            toggleGMFields();
             modal.classList.remove('hidden');
             modal.classList.add('flex');
+        }
+
+        function toggleGMClubRoleField() {
+            const wrapper = document.getElementById('gm-club-role-wrapper');
+            const club = document.getElementById('member-gm-works-club').value;
+            if (club === 'Aventureros' || club === 'Conquistadores') wrapper.classList.remove('hidden');
+            else {
+                wrapper.classList.add('hidden');
+                document.getElementById('member-gm-club-role').value = '';
+            }
+        }
+
+        function toggleGMFields() {
+            const wrapper = document.getElementById('gm-member-fields');
+            const club = document.getElementById('member-club').value;
+            if (club === 'Guías Mayores') wrapper.classList.remove('hidden');
+            else wrapper.classList.add('hidden');
+            toggleGMClubRoleField();
         }
 
         function closeMemberModal() {
@@ -2067,12 +2161,15 @@
             const baptismDate = baptized ? document.getElementById('member-baptism-date').value : '';
             const gp = document.getElementById('member-gp').value.trim();
             const club = document.getElementById('member-club').value;
+            const gmInvestitureStatus = document.getElementById('member-gm-investiture').value;
+            const gmWorksClub = document.getElementById('member-gm-works-club').value;
+            const gmClubRole = document.getElementById('member-gm-club-role').value;
             const roles = Array.from(document.querySelectorAll('input[name="member-roles"]:checked')).map(cb => cb.value);
 
             const payload = {
                 name, documentType, documentNumber, birthDate, phone, email, bloodType, eps,
                 emergencyName, emergencyPhone, allergies, baptized, baptismDate,
-                gp, club, roles
+                gp, club, roles, gmInvestitureStatus, gmWorksClub, gmClubRole
             };
 
             if (id) {
@@ -2564,6 +2661,7 @@
         // ==========================================
         function selectClubTab(clubName) {
             activeClubTab = clubName;
+            activeClubClassFilter = '';
 
             // Actualizar botones de pestaña
             document.querySelectorAll('.club-tab-btn').forEach(btn => {
@@ -2573,6 +2671,8 @@
             const activeBtn = document.getElementById(`tab-club-${clubName}`);
             if (activeBtn) {
                 const activeColors = {
+                    'Ministerio JA': 'bg-blue-800 text-white shadow-sm',
+                    'Grupo Pequeño': 'bg-violet-800 text-white shadow-sm',
                     'Aventureros': 'bg-red-900 text-white shadow-sm',
                     'Conquistadores': 'bg-blue-900 text-white shadow-sm',
                     'Guías Mayores': 'bg-emerald-800 text-white shadow-sm'
@@ -2594,8 +2694,17 @@
             document.getElementById('club-title').textContent = config.title;
             document.getElementById('club-motto').textContent = config.motto;
 
+            // En Ministerio JA y Grupo Pequeño no se muestran Clases Progresivas ni Especialidades y Actividades.
+            const secondaryPanel = document.getElementById('club-secondary-panel');
+            if (secondaryPanel) {
+                secondaryPanel.classList.toggle('hidden', activeClubTab === 'Ministerio JA' || activeClubTab === 'Grupo Pequeño');
+            }
+
             // Filtrar miembros del club activo
-            const clubMembers = members.filter(m => m.club === activeClubTab);
+            const allClubMembers = members.filter(m => m.club === activeClubTab);
+            const clubMembers = activeClubClassFilter && (activeClubTab === 'Aventureros' || activeClubTab === 'Conquistadores')
+                ? allClubMembers.filter(m => m.clubClass === activeClubClassFilter)
+                : allClubMembers;
             const presentCount = clubMembers.filter(m => m.presentToday).length;
             const attendancePercent = clubMembers.length > 0 ? Math.round((presentCount / clubMembers.length) * 100) : 0;
 
@@ -2630,16 +2739,21 @@
                                         <span class="px-1.5 py-0.2 rounded text-[10px] font-black bg-red-50 text-red-700 border border-red-200">${m.bloodType || 'RH?'}</span>
                                         <span class="text-[11px] font-semibold text-slate-500">${m.eps || ''}</span>
                                     </div>
-                                    <p class="text-xs text-slate-500">${age} años • ${m.presentToday ? '<span class="text-emerald-600 font-semibold">Presente</span>' : 'Ausente'} ${m.clubClass ? `• <span class="text-blue-700 font-semibold">${m.clubClass}</span>` : ''} ${m.allergies && m.allergies.toLowerCase() !== 'ninguna' ? `• <span class="text-amber-700 font-semibold">Alergia: ${m.allergies}</span>` : ''}</p>
+                                    <p class="text-xs text-slate-500">${age} años • ${m.presentToday ? '<span class="text-emerald-600 font-semibold">Presente</span>' : 'Ausente'} ${m.clubClass && activeClubTab !== 'Guías Mayores' ? `• <span class="text-blue-700 font-semibold">${m.clubClass}</span>` : ''} ${activeClubTab === 'Guías Mayores' && m.gmInvestitureStatus ? `• <span class="text-emerald-700 font-semibold">${m.gmInvestitureStatus}</span>` : ''} ${m.allergies && m.allergies.toLowerCase() !== 'ninguna' ? `• <span class="text-amber-700 font-semibold">Alergia: ${m.allergies}</span>` : ''}</p>
                                 </div>
                             </div>
 
                             <div class="admin-only flex items-center gap-2 self-end sm:self-auto">
+                                ${activeClubTab === 'Guías Mayores' ? `
+                                    <span class="text-[11px] font-semibold text-slate-500">${m.gmInvestitureStatus || 'No investido'}</span>
+                                    ${m.gmWorksClub && m.gmWorksClub !== 'Ninguno' ? `<span class="text-[11px] font-semibold text-emerald-700">${m.gmWorksClub}${m.gmClubRole ? ' • ' + m.gmClubRole : ''}</span>` : ''}
+                                ` : `
                                 <label class="text-[11px] font-semibold text-slate-400">Clase:</label>
                                 <select onchange="updateMemberClubClass('${m.id}', this.value)" class="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                                     <option value="">Sin clase</option>
                                     ${classOptions}
                                 </select>
+                                `}
                             </div>
                         </div>
                     `;
@@ -2649,7 +2763,20 @@
             // Renderizar tarjetas de Clases Progresivas
             const classesContainer = document.getElementById('club-classes-badges');
             classesContainer.innerHTML = config.classes.map(c => {
-                const countInClass = clubMembers.filter(m => m.clubClass === c.name).length;
+                const countInClass = allClubMembers.filter(m => m.clubClass === c.name).length;
+                const selectable = activeClubTab === 'Aventureros' || activeClubTab === 'Conquistadores';
+                const selected = activeClubClassFilter === c.name;
+                if (selectable) {
+                    return `
+                        <button type="button" onclick="selectClubClass('${c.name.replace(/'/g, "\\'")}')" class="text-left p-3 rounded-xl border ${c.color} flex flex-col justify-between transition-all cursor-pointer ${selected ? 'ring-2 ring-blue-500 shadow-md scale-[1.01]' : 'hover:shadow-sm hover:-translate-y-0.5'}">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="font-bold text-xs">${c.name}</span>
+                                <span class="text-xs font-black bg-white/70 px-1.5 py-0.5 rounded">${countInClass}</span>
+                            </div>
+                            <span class="text-[10px] opacity-80 mt-1">${c.age}</span>
+                        </button>
+                    `;
+                }
                 return `
                     <div class="p-3 rounded-xl border ${c.color} flex flex-col justify-between">
                         <div class="flex items-center justify-between">
@@ -2660,6 +2787,8 @@
                     </div>
                 `;
             }).join('');
+
+            renderClubLeadershipPanel();
 
             // Renderizar actividades / especialidades del club
             const activities = clubActivities[activeClubTab] || [];
@@ -2679,6 +2808,134 @@
                     </div>
                 `).join('');
             }
+        }
+
+        function selectClubClass(className) {
+            if (activeClubTab !== 'Aventureros' && activeClubTab !== 'Conquistadores') return;
+            activeClubClassFilter = activeClubClassFilter === className ? '' : className;
+            renderClubSection();
+        }
+
+        function renderClubLeadershipPanel() {
+            const panel = document.getElementById('club-leadership-panel');
+            if (!panel) return;
+
+            const roleConfig = {
+                'Ministerio JA': [
+                    'Director(a)', 'Subdirector', 'Secretario(a)', 'Tesorero(a)', 'Consejero(a)',
+                    'Anciano de Jóvenes', 'Director Sociedad de Jóvenes', 'Director Música',
+                    'Dr Escuela Sabática', 'Coordinador de Comunicación y Redes'
+                ],
+                'Grupo Pequeño': [
+                    'Líder del Grupo Pequeño', 'Líder Asociado o Asistente', 'Secretario(a)', 'Tesorero',
+                    'Anfitrión', 'Coordinador de Evangelismo', 'Coordinador de Oración',
+                    'Coordinador de Integración', 'Coordinador de Música'
+                ],
+                'Aventureros': ['Director(a)', 'Sub Director(a)', 'Secretario(a)', 'Tesorero(a)', 'Consejero(a)'],
+                'Conquistadores': ['Director(a)', 'Sub Director(a)', 'Secretario(a)', 'Tesorero(a)', 'Consejero(a)'],
+                'Guías Mayores': ['Director(a)', 'Sub Director(a)', 'Secretario(a)', 'Tesorero(a)']
+            };
+            const roles = roleConfig[activeClubTab];
+            if (!roles) {
+                panel.classList.add('hidden');
+                panel.innerHTML = '';
+                return;
+            }
+
+            panel.classList.remove('hidden');
+            const clubMembers = members.filter(m => m.club === activeClubTab);
+            const assigned = {};
+            clubMembers.forEach(m => {
+                const role = m.clubRoles && m.clubRoles[activeClubTab];
+                if (role) assigned[role] = m.id;
+            });
+
+            // En Ministerio JA, estos tres cargos se llenan automáticamente
+            // con los directores registrados en sus respectivos clubes.
+            const autoDirectorRoles = {
+                'Director de Aventureros': 'Aventureros',
+                'Director de Conquistadores': 'Conquistadores',
+                'Director de Guías Mayores': 'Guías Mayores'
+            };
+
+            const getClubDirectorName = (clubName) => {
+                const director = members.find(m => m.club === clubName && m.clubRoles && m.clubRoles[clubName] === 'Director(a)');
+                return director ? director.name : 'Sin director registrado';
+            };
+
+            const autoRoles = activeClubTab === 'Ministerio JA' ? Object.keys(autoDirectorRoles) : [];
+            const allRoles = [...roles, ...autoRoles];
+
+            panel.innerHTML = `
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-lg">Cargos del ${activeClubTab}</h3>
+                        <p class="text-xs text-slate-500">${activeClubTab === 'Ministerio JA' ? 'Asigna los cargos de Ministerio JA. Los directores de Aventureros, Conquistadores y Guías Mayores se completan automáticamente.' : 'Asigna los cargos a los integrantes correspondientes.'}</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    ${roles.map(role => {
+                        const selectedId = assigned[role] || '';
+                        const options = clubMembers.map(m => `<option value="${m.id}" ${selectedId === m.id ? 'selected' : ''}>${m.name}</option>`).join('');
+                        return `
+                            <div class="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200">
+                                <div class="w-9 h-9 rounded-lg bg-slate-900 text-white flex items-center justify-center shrink-0"><i class="fas fa-user-tie text-xs"></i></div>
+                                <div class="min-w-0 flex-1">
+                                    <label class="block text-[11px] font-bold uppercase tracking-wide text-slate-500 mb-1">${role}</label>
+                                    <select onchange="updateClubRole('${role.replace(/'/g, "\\'")}', this.value)" ${!isAdmin() ? 'disabled' : ''} class="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option value="">Sin asignar</option>
+                                        ${options}
+                                    </select>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+
+                    ${autoRoles.map(role => {
+                        const clubName = autoDirectorRoles[role];
+                        const directorName = getClubDirectorName(clubName);
+                        return `
+                            <div class="flex items-center gap-3 p-3 rounded-xl bg-blue-50 border border-blue-200">
+                                <div class="w-9 h-9 rounded-lg bg-blue-700 text-white flex items-center justify-center shrink-0"><i class="fas fa-link text-xs"></i></div>
+                                <div class="min-w-0 flex-1">
+                                    <label class="block text-[11px] font-bold uppercase tracking-wide text-blue-700 mb-1">${role}</label>
+                                    <div class="w-full px-2.5 py-1.5 bg-white border border-blue-200 rounded-lg text-xs font-semibold text-slate-700">${directorName}</div>
+                                    <p class="text-[10px] text-blue-600 mt-1">Se toma automáticamente de ${clubName}.</p>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        function updateClubRole(role, memberId) {
+            if (!isAdmin()) return;
+            const club = activeClubTab;
+            const clubMembers = members.filter(m => m.club === club);
+
+            // Quitar este cargo de cualquier integrante que lo tuviera.
+            clubMembers.forEach(m => {
+                if (m.clubRoles && m.clubRoles[club] === role) {
+                    m.clubRoles = { ...m.clubRoles };
+                    delete m.clubRoles[club];
+                    syncMemberToCloud(m);
+                }
+            });
+
+            if (memberId) {
+                const selected = members.find(m => m.id === memberId);
+                if (selected) {
+                    // Un integrante solo ocupa un cargo dentro de este club.
+                    selected.clubRoles = { ...(selected.clubRoles || {}) };
+                    Object.keys(selected.clubRoles).forEach(clubKey => {
+                        if (clubKey === club) delete selected.clubRoles[clubKey];
+                    });
+                    selected.clubRoles[club] = role;
+                    syncMemberToCloud(selected);
+                }
+            }
+            renderClubSection();
         }
 
         function toggleClubAttendance(memberId) {
