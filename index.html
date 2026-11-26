@@ -325,6 +325,23 @@
         <!-- Área de Contenido Principal -->
         <main class="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
 
+            <!-- Iglesia activa: contexto global de la aplicación -->
+            <div id="active-church-bar" class="mb-5 bg-white rounded-2xl border border-emerald-200/80 shadow-xs px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0"><i class="fas fa-church"></i></div>
+                    <div class="min-w-0">
+                        <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Iglesia activa</p>
+                        <p id="active-church-label" class="text-sm font-extrabold text-slate-900 truncate">Peniel</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <label for="active-church-select" class="text-xs font-bold text-slate-500 whitespace-nowrap">Trabajando en:</label>
+                    <select id="active-church-select" class="w-full sm:w-64 px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm font-semibold text-slate-800 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none">
+                        <option value="Peniel">Peniel</option>
+                    </select>
+                </div>
+            </div>
+
             <!-- ========================================== -->
             <!-- VISTA 1: DASHBOARD / RESUMEN GENERAL       -->
             <!-- ========================================== -->
@@ -2126,6 +2143,10 @@
         let districtStructure = JSON.parse(JSON.stringify(DEFAULT_DISTRICT_STRUCTURE));
         let districtStructureListenerStarted = false;
 
+        // Iglesia activa: etapa 1 de la separación de datos por iglesia.
+        // Por seguridad, esta etapa solo establece el contexto activo; no altera todavía los registros existentes.
+        let activeChurch = sessionStorage.getItem('ja_active_church') || 'Peniel';
+
 
         // Cambios de cargos pendientes: solo se guardan en Firebase al pulsar Guardar.
         let pendingClubAssignments = {};
@@ -2401,6 +2422,7 @@
                 members = [];
                 clubActivities = JSON.parse(JSON.stringify(DEFAULT_CLUB_DATA));
                 refreshAllUI();
+                renderActiveChurchSelector();
                 if (!currentDraftSchedule) generateAutoSchedule(true);
                 return;
             }
@@ -2460,6 +2482,9 @@
                 }
                 renderClubSection();
             }, (err) => console.error('Error clubes nube:', err));
+
+            // Cargar también la estructura Distrito/Iglesias para alimentar el selector de iglesia activa.
+            loadDistrictStructure();
         }
 
         async function syncMemberToCloud(memberObj) {
@@ -2704,6 +2729,9 @@
             document.getElementById('close-sidebar-btn').addEventListener('click', closeMobileMenu);
             document.getElementById('mobile-overlay').addEventListener('click', closeMobileMenu);
 
+            const activeChurchSelect = document.getElementById('active-church-select');
+            activeChurchSelect?.addEventListener('change', (event) => setActiveChurch(event.target.value));
+
             // Filtros de tabla de miembros
             document.getElementById('filter-search').addEventListener('input', renderMembersTable);
             document.getElementById('filter-club').addEventListener('change', renderMembersTable);
@@ -2721,6 +2749,34 @@
             document.getElementById('mobile-overlay').classList.add('hidden');
         }
 
+        function renderActiveChurchSelector() {
+            const select = document.getElementById('active-church-select');
+            const label = document.getElementById('active-church-label');
+            if (!select || !label) return;
+
+            const churches = Array.isArray(districtStructure.churches) && districtStructure.churches.length
+                ? districtStructure.churches
+                : DEFAULT_DISTRICT_STRUCTURE.churches;
+
+            if (!churches.includes(activeChurch)) activeChurch = churches[0] || 'Peniel';
+            select.innerHTML = churches.map(church => {
+                const safe = String(church).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+                return `<option value="${safe}">${safe}</option>`;
+            }).join('');
+            select.value = activeChurch;
+            label.textContent = activeChurch;
+        }
+
+        function setActiveChurch(churchName) {
+            const name = String(churchName || '').trim();
+            const churches = Array.isArray(districtStructure.churches) ? districtStructure.churches : [];
+            if (!name || !churches.includes(name)) return;
+            activeChurch = name;
+            sessionStorage.setItem('ja_active_church', activeChurch);
+            renderActiveChurchSelector();
+            showToast(`Iglesia activa: ${activeChurch}`, 'success');
+        }
+
         function renderDistrictStructure() {
             const districtInput = document.getElementById('district-name-input');
             const list = document.getElementById('district-churches-list');
@@ -2729,6 +2785,7 @@
 
             districtInput.value = districtStructure.district || DEFAULT_DISTRICT_STRUCTURE.district;
             districtInput.disabled = !isAdmin();
+            renderActiveChurchSelector();
             list.innerHTML = '';
 
             const churches = Array.isArray(districtStructure.churches) ? districtStructure.churches : [];
@@ -6151,6 +6208,7 @@
         initEventListeners();
         setDefaultScheduleDate();
         applyRolePermissionsUI();
+        renderActiveChurchSelector();
         firebaseInitPromise = initCloudSync();
         setTimeout(() => { renderGeneralAttendanceReport(); renderActivitiesAttendancePanel(); }, 300);
         // No intentar leer Firestore antes de que exista una sesión autenticada.
