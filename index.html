@@ -38,24 +38,6 @@
         }
     </script>
     <style>
-        @media print {
-            body.print-weekly-register * { visibility: hidden !important; }
-            body.print-weekly-register #view-weekly-register,
-            body.print-weekly-register #view-weekly-register * { visibility: visible !important; }
-            body.print-weekly-register #view-weekly-register {
-                display: block !important;
-                position: absolute !important;
-                left: 0 !important;
-                top: 0 !important;
-                width: 100% !important;
-                padding: 0 !important;
-                margin: 0 !important;
-            }
-            body.print-weekly-register .no-print-weekly { display: none !important; }
-            body.print-weekly-register table { font-size: 10px !important; }
-            body.print-weekly-register #weekly-register-print-title { display: block !important; }
-        }
-        #weekly-register-print-title { display: none; }
         /* Estilos personalizados para barras de desplazamiento y transiciones suaves */
         ::-webkit-scrollbar {
             width: 6px;
@@ -262,6 +244,10 @@
                     <button data-view="members" class="nav-btn w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-white transition-all">
                         <i class="fas fa-users w-5 text-center"></i>
                         <span>Base de Datos (Miembros)</span>
+                    </button>
+                    <button data-view="district-structure" class="nav-btn w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-white transition-all">
+                        <i class="fas fa-sitemap w-5 text-center"></i>
+                        <span>Distrito e Iglesias</span>
                     </button>
 
                     <button data-view="scheduler" class="nav-btn w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-white transition-all">
@@ -530,6 +516,59 @@
 
 
             <!-- ========================================== -->
+            <!-- VISTA: DISTRITO E IGLESIAS                    -->
+            <!-- ========================================== -->
+            <section id="view-district-structure" class="view-section hidden space-y-6 fade-in">
+                <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <span class="text-xs font-bold uppercase tracking-wider text-blue-700 bg-blue-50 px-3 py-1 rounded-full">Estructura de la organización</span>
+                            <h1 class="text-2xl font-extrabold text-slate-900 mt-2">Distrito e Iglesias</h1>
+                            <p class="text-slate-500 text-sm mt-1">Define el distrito que utilizará la aplicación y las iglesias que pertenecen a él.</p>
+                        </div>
+                        <button type="button" onclick="saveDistrictStructure()" class="admin-only inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-all">
+                            <i class="fas fa-cloud-arrow-up"></i> Guardar estructura
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80 lg:col-span-1">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-11 h-11 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center"><i class="fas fa-map-location-dot"></i></div>
+                            <div>
+                                <h2 class="font-extrabold text-slate-900">Distrito</h2>
+                                <p class="text-xs text-slate-500">Editable para cada usuario.</p>
+                            </div>
+                        </div>
+                        <label class="block text-xs font-bold text-slate-600 mb-2" for="district-name-input">Nombre del distrito</label>
+                        <input id="district-name-input" type="text" maxlength="100" placeholder="Ej. Nueva Sion" class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm font-semibold">
+                    </div>
+
+                    <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80 lg:col-span-2">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                            <div>
+                                <h2 class="font-extrabold text-slate-900">Iglesias del distrito</h2>
+                                <p class="text-xs text-slate-500">Puedes agregar las que hagan falta.</p>
+                            </div>
+                            <button type="button" onclick="addDistrictChurch()" class="admin-only inline-flex items-center justify-center gap-2 px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl">
+                                <i class="fas fa-plus"></i> Agregar iglesia
+                            </button>
+                        </div>
+                        <div id="district-churches-list" class="space-y-3"></div>
+                        <div id="district-empty-churches" class="hidden text-center py-8 text-slate-400 text-sm">No hay iglesias registradas.</div>
+                    </div>
+                </div>
+
+                <div class="bg-blue-50 border border-blue-100 rounded-2xl p-5 text-sm text-blue-900">
+                    <div class="flex gap-3">
+                        <i class="fas fa-circle-info mt-0.5"></i>
+                        <p><strong>Nota:</strong> esta estructura establece primero el Distrito y, dentro de él, sus Iglesias. La separación de los demás registros por iglesia se podrá aplicar posteriormente sin alterar los datos actuales.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================== -->
             <!-- VISTA 2: BASE DE DATOS DE MIEMBROS (CRUD)  -->
             <!-- ========================================== -->
             <section id="view-members" class="view-section hidden space-y-6 fade-in">
@@ -627,17 +666,7 @@
                 <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80">
                     <span class="text-xs font-bold uppercase tracking-wider text-amber-600 bg-amber-50 px-3 py-1 rounded-full">Automatización Inteligente</span>
                     <h1 class="text-2xl font-extrabold text-slate-900 mt-2">Generador de Programaciones</h1>
-                    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-                        <div>
-                            <span class="text-xs font-bold uppercase tracking-wider text-amber-600 bg-amber-50 px-3 py-1 rounded-full">Automatización Inteligente</span>
-                            <h1 class="text-2xl font-extrabold text-slate-900 mt-2">Generador de Programaciones</h1>
-                            <p class="text-slate-500 text-sm mt-1">Asigna roles automáticamente para Sociedad de Jóvenes (con Servicio de Canto) o Grupos Pequeños.</p>
-                        </div>
-                        <button type="button" onclick="openWeeklyProgramRegister()" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-sm transition-all cursor-pointer">
-                            <i class="fas fa-clipboard-check"></i>
-                            <span>Registro Programas Semanales</span>
-                        </button>
-                    </div>
+                    <p class="text-slate-500 text-sm mt-1">Asigna roles automáticamente para Sociedad de Jóvenes (con Servicio de Canto) o Grupos Pequeños.</p>
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -741,111 +770,6 @@
                 </div>
             </section>
 
-
-
-            <!-- ========================================== -->
-            <!-- VISTA: REGISTRO PROGRAMAS SEMANALES       -->
-            <!-- ========================================== -->
-            <section id="view-weekly-register" class="view-section hidden space-y-6 fade-in">
-                <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80">
-                    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                        <div>
-                            <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full">Sociedad de Jóvenes y Grupo Pequeño</span>
-                            <h1 class="text-2xl font-extrabold text-slate-900 mt-2">Registro Programas Semanales</h1>
-                            <p class="text-slate-500 text-sm mt-1">Registra la asistencia y participación de toda la base de datos en cada programa semanal.</p>
-                        </div>
-                        <div class="flex flex-wrap gap-2 no-print-weekly">
-                            <button type="button" onclick="printWeeklyProgramRegister()" class="inline-flex items-center justify-center gap-2 px-3.5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold rounded-xl cursor-pointer">
-                                <i class="fas fa-print"></i><span>Imprimir / PDF</span>
-                            </button>
-                            <button type="button" onclick="exportWeeklyProgramRegisterToExcel()" class="inline-flex items-center justify-center gap-2 px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl cursor-pointer">
-                                <i class="fas fa-file-excel"></i><span>Exportar Excel</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80 no-print-weekly">
-                    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        <div>
-                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Tipo de programa <span class="text-red-500">*</span></label>
-                            <select id="weekly-register-type" onchange="handleWeeklyRegisterTypeChange()" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                                <option value="Sociedad de Jóvenes">Sociedad de Jóvenes</option>
-                                <option value="Grupo Pequeño">Grupo Pequeño</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Fecha <span class="text-red-500">*</span></label>
-                            <input type="date" id="weekly-register-date" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Nombre del programa <span class="text-red-500">*</span></label>
-                            <input type="text" id="weekly-register-name" placeholder="Ej. Culto Joven / Reunión semanal" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                        </div>
-                        <div id="weekly-register-gp-wrap" class="hidden">
-                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Grupo Pequeño</label>
-                            <select id="weekly-register-gp" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                                <option value="">Seleccionar grupo</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="mt-4 flex flex-wrap gap-2">
-                        <button type="button" onclick="prepareWeeklyProgramRegister()" class="admin-only inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl cursor-pointer">
-                            <i class="fas fa-users"></i><span>Cargar todos los miembros</span>
-                        </button>
-                        <button type="button" onclick="saveWeeklyProgramRegister()" class="admin-only inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl cursor-pointer">
-                            <i class="fas fa-save"></i><span>Guardar registro</span>
-                        </button>
-                        <button type="button" onclick="clearWeeklyProgramRegister()" class="admin-only inline-flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-xl cursor-pointer">
-                            <i class="fas fa-eraser"></i><span>Limpiar</span>
-                        </button>
-                    </div>
-                    <p id="weekly-register-message" class="text-xs text-slate-500 mt-3"></p>
-                </div>
-
-                <div id="weekly-register-print-title" class="bg-white p-4 border-b border-slate-200">
-                    <h2 class="text-xl font-extrabold text-slate-900">Registro Programas Semanales</h2>
-                    <p id="weekly-register-print-meta" class="text-sm text-slate-600 mt-1"></p>
-                </div>
-
-                <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden">
-                    <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                        <div>
-                            <h2 class="font-bold text-slate-900">Registro de asistencia y participación</h2>
-                            <p class="text-xs text-slate-500">Aparecen todos los miembros de la base de datos.</p>
-                        </div>
-                        <span id="weekly-register-member-count" class="text-xs font-bold bg-slate-100 text-slate-600 px-3 py-1 rounded-full">0 miembros</span>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table id="weekly-register-table" class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold uppercase tracking-wider text-slate-500">
-                                    <th class="py-3 px-4">#</th>
-                                    <th class="py-3 px-4">Miembro</th>
-                                    <th class="py-3 px-4">Asistencia</th>
-                                    <th class="py-3 px-4">Participación</th>
-                                </tr>
-                            </thead>
-                            <tbody id="weekly-register-table-body" class="divide-y divide-slate-100 text-sm"></tbody>
-                        </table>
-                    </div>
-                    <div id="weekly-register-empty" class="py-12 px-4 text-center text-slate-400">
-                        <i class="fas fa-users text-3xl mb-3"></i>
-                        <p class="font-semibold text-sm">Selecciona fecha y programa y pulsa “Cargar todos los miembros”.</p>
-                    </div>
-                </div>
-
-                <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80 no-print-weekly">
-                    <div class="flex items-center justify-between mb-4">
-                        <div>
-                            <h2 class="font-bold text-slate-900 text-lg">Registros guardados</h2>
-                            <p class="text-xs text-slate-500">Consulta y vuelve a abrir los registros anteriores.</p>
-                        </div>
-                        <span id="weekly-register-history-count" class="text-xs font-bold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full">0</span>
-                    </div>
-                    <div id="weekly-register-history" class="space-y-3"></div>
-                </div>
-            </section>
 
             <!-- ========================================== -->
             <!-- VISTA 4: SECCIÓN DE CLUBES JUVENILES       -->
@@ -2189,13 +2113,19 @@
         // Estado principal de la aplicación
         let members = [];
         let savedSchedules = [];
-        let weeklyProgramRecords = [];
-        let currentWeeklyRegisterRows = [];
-        let editingWeeklyRecordId = null;
         let clubActivities = {};
         let currentDraftSchedule = null;
         let activeClubTab = 'Aventureros';
         let activeClubClassFilter = '';
+
+        // Estructura de Distrito e Iglesias
+        const DEFAULT_DISTRICT_STRUCTURE = {
+            district: 'Nueva Sion',
+            churches: ['Peniel', 'Nueva Sion', 'Emmanuel', 'Renacer', 'Nueva Luz', 'Canaán', 'La Voz', 'Alfa y omega']
+        };
+        let districtStructure = JSON.parse(JSON.stringify(DEFAULT_DISTRICT_STRUCTURE));
+        let districtStructureListenerStarted = false;
+
 
         // Cambios de cargos pendientes: solo se guardan en Firebase al pulsar Guardar.
         let pendingClubAssignments = {};
@@ -2556,33 +2486,6 @@
             await deleteDoc(ref);
         }
 
-        async function loadWeeklyProgramRecordsFromCloud() {
-            try {
-                if (!db || !currentUser) return;
-                const ref = collection(db, 'artifacts', appId, 'public', 'data', 'ja_program_attendance');
-                const snapshot = await getDocs(ref);
-                weeklyProgramRecords = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-                weeklyProgramRecords.sort((a,b) => `${b.date || ''}`.localeCompare(`${a.date || ''}`));
-                renderWeeklyProgramHistory();
-            } catch (error) {
-                console.error('Error cargando registros de programas semanales:', error);
-            }
-        }
-
-        async function syncWeeklyProgramRecordToCloud(record) {
-            if (!cloudReady || !currentUser || !db) return;
-            if (!isAdmin()) throw new Error('Solo el administrador puede guardar registros.');
-            const ref = doc(db, 'artifacts', appId, 'public', 'data', 'ja_program_attendance', record.id);
-            await setDoc(ref, record);
-        }
-
-        async function deleteWeeklyProgramRecordFromCloud(recordId) {
-            if (!cloudReady || !currentUser || !db) return;
-            if (!isAdmin()) throw new Error('Solo el administrador puede eliminar registros.');
-            const ref = doc(db, 'artifacts', appId, 'public', 'data', 'ja_program_attendance', recordId);
-            await deleteDoc(ref);
-        }
-
         async function syncClubActivitiesToCloud() {
             if (!cloudReady || !currentUser || !db) return;
             const clubsRef = doc(db, 'artifacts', appId, 'public', 'data', 'ja_settings', 'clubs');
@@ -2646,7 +2549,6 @@
                 applyRolePermissionsUI();
                 // Cargar las actividades después de autenticar al usuario de consulta.
                 await loadActivitiesFromCloud();
-                await loadWeeklyProgramRecordsFromCloud();
                 if (savedSchedules.length > 0) {
                     currentDraftSchedule = JSON.parse(JSON.stringify(savedSchedules[0]));
                     renderDraftSchedule();
@@ -2700,7 +2602,6 @@
                 applyRolePermissionsUI();
                 // Cargar las actividades después de autenticar al administrador.
                 await loadActivitiesFromCloud();
-                await loadWeeklyProgramRecordsFromCloud();
                 showToast('Acceso concedido como Administrador.', 'success');
             } catch (err) {
                 console.error(err);
@@ -2782,9 +2683,6 @@
             renderMembersTable();
             renderSavedSchedules();
             renderClubSection();
-            populateWeeklyRegisterGroups();
-            renderWeeklyProgramHistory();
-            renderWeeklyRegisterTable();
         }
 
         // ==========================================
@@ -2823,301 +2721,127 @@
             document.getElementById('mobile-overlay').classList.add('hidden');
         }
 
+        function renderDistrictStructure() {
+            const districtInput = document.getElementById('district-name-input');
+            const list = document.getElementById('district-churches-list');
+            const empty = document.getElementById('district-empty-churches');
+            if (!districtInput || !list) return;
 
-        function populateWeeklyRegisterGroups() {
-            const select = document.getElementById('weekly-register-gp');
-            if (!select) return;
-            const gps = new Set();
-            members.forEach(member => {
-                const roles = member.clubRoles || {};
-                const role = roles['Grupo Pequeño'];
-                if (role) {
-                    const gpName = typeof role === 'string' ? role : (role.groupName || role.grupo || '');
-                    if (gpName) gps.add(gpName);
+            districtInput.value = districtStructure.district || DEFAULT_DISTRICT_STRUCTURE.district;
+            districtInput.disabled = !isAdmin();
+            list.innerHTML = '';
+
+            const churches = Array.isArray(districtStructure.churches) ? districtStructure.churches : [];
+            empty?.classList.toggle('hidden', churches.length > 0);
+
+            churches.forEach((church, index) => {
+                const row = document.createElement('div');
+                row.className = 'flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 bg-slate-50';
+                row.innerHTML = `
+                    <div class="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0"><i class="fas fa-church"></i></div>
+                    <input type="text" value="${String(church || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}" data-church-index="${index}" class="district-church-input flex-1 min-w-0 px-3 py-2.5 rounded-lg border border-slate-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm font-semibold" ${isAdmin() ? '' : 'disabled'}>
+                    <button type="button" onclick="removeDistrictChurch(${index})" class="admin-only w-9 h-9 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 flex items-center justify-center" title="Eliminar iglesia"><i class="fas fa-trash"></i></button>
+                `;
+                list.appendChild(row);
+            });
+        }
+
+        function loadDistrictStructure() {
+            if (!cloudReady || !db || !currentUser) {
+                renderDistrictStructure();
+                return;
+            }
+            if (districtStructureListenerStarted) {
+                renderDistrictStructure();
+                return;
+            }
+            districtStructureListenerStarted = true;
+            const structureRef = doc(db, 'artifacts', appId, 'public', 'data', 'ja_settings', 'church_structure');
+            onSnapshot(structureRef, (snap) => {
+                if (snap.exists()) {
+                    const data = snap.data() || {};
+                    districtStructure = {
+                        district: String(data.district || DEFAULT_DISTRICT_STRUCTURE.district),
+                        churches: Array.isArray(data.churches) ? data.churches.map(x => String(x || '').trim()).filter(Boolean) : [...DEFAULT_DISTRICT_STRUCTURE.churches]
+                    };
+                } else {
+                    districtStructure = JSON.parse(JSON.stringify(DEFAULT_DISTRICT_STRUCTURE));
+                    if (isAdmin()) {
+                        setDoc(structureRef, districtStructure, { merge: true }).catch(err => console.warn('No se pudo crear la estructura inicial:', err));
+                    }
                 }
-                if (member.smallGroup) gps.add(member.smallGroup);
-                if (member.grupoPequeno) gps.add(member.grupoPequeno);
+                renderDistrictStructure();
+            }, (error) => {
+                console.warn('No se pudo cargar Distrito e Iglesias:', error);
+                renderDistrictStructure();
             });
-            const current = select.value;
-            select.innerHTML = '<option value="">Seleccionar grupo</option>' +
-                [...gps].sort((a,b)=>a.localeCompare(b)).map(name => `<option value="${escapeActivityHtml(name)}">${escapeActivityHtml(name)}</option>`).join('');
-            if (current) select.value = current;
         }
 
-        function handleWeeklyRegisterTypeChange() {
-            const type = document.getElementById('weekly-register-type')?.value || 'Sociedad de Jóvenes';
-            const wrap = document.getElementById('weekly-register-gp-wrap');
-            if (wrap) wrap.classList.toggle('hidden', type !== 'Grupo Pequeño');
-            populateWeeklyRegisterGroups();
-        }
-
-        function openWeeklyProgramRegister() {
-            switchView('weekly-register');
-            handleWeeklyRegisterTypeChange();
-            const dateInput = document.getElementById('weekly-register-date');
-            if (dateInput && !dateInput.value) {
-                dateInput.value = new Date().toISOString().slice(0,10);
-            }
-            if (members.length && !currentWeeklyRegisterRows.length) renderWeeklyRegisterTable();
-        }
-
-        function prepareWeeklyProgramRegister() {
+        function addDistrictChurch() {
             if (!isAdmin()) {
-                showToast('Solo el administrador puede diligenciar este registro.', 'error');
+                showToast('Solo el administrador puede modificar la estructura.', 'error');
                 return;
             }
-            const date = document.getElementById('weekly-register-date')?.value || '';
-            const name = document.getElementById('weekly-register-name')?.value.trim() || '';
-            const type = document.getElementById('weekly-register-type')?.value || '';
-            if (!date || !name || !type) {
-                showToast('Completa Tipo de programa, Fecha y Nombre del programa.', 'error');
-                return;
-            }
-            currentWeeklyRegisterRows = members
-                .slice()
-                .sort((a,b)=>(a.name||'').localeCompare(b.name||''))
-                .map(member => ({
-                    memberId: member.id || '',
-                    name: member.name || 'Sin nombre',
-                    attendance: 'Pendiente',
-                    participation: 'Pendiente'
-                }));
-            editingWeeklyRecordId = null;
-            renderWeeklyRegisterTable();
-            showToast(`Se cargaron ${currentWeeklyRegisterRows.length} miembros de la base de datos.`, 'success');
+            districtStructure.churches = Array.isArray(districtStructure.churches) ? districtStructure.churches : [];
+            districtStructure.churches.push('Nueva iglesia');
+            renderDistrictStructure();
+            const inputs = document.querySelectorAll('.district-church-input');
+            inputs[inputs.length - 1]?.focus();
+            inputs[inputs.length - 1]?.select();
         }
 
-        function renderWeeklyRegisterTable() {
-            const tbody = document.getElementById('weekly-register-table-body');
-            const empty = document.getElementById('weekly-register-empty');
-            const count = document.getElementById('weekly-register-member-count');
-            if (!tbody) return;
-            const rows = Array.isArray(currentWeeklyRegisterRows) ? currentWeeklyRegisterRows : [];
-            if (count) count.textContent = `${rows.length} ${rows.length === 1 ? 'miembro' : 'miembros'}`;
-            if (!rows.length) {
-                tbody.innerHTML = '';
-                if (empty) empty.classList.remove('hidden');
-                return;
-            }
-            if (empty) empty.classList.add('hidden');
-            const disabled = isAdmin() ? '' : 'disabled';
-            tbody.innerHTML = rows.map((row,index) => `
-                <tr class="hover:bg-slate-50/70">
-                    <td class="py-2.5 px-4 text-slate-400 font-semibold">${index + 1}</td>
-                    <td class="py-2.5 px-4 font-semibold text-slate-800">${escapeActivityHtml(row.name || 'Sin nombre')}</td>
-                    <td class="py-2.5 px-4">
-                        <select ${disabled} onchange="setWeeklyRegisterAttendance(${index}, this.value)" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                            <option value="Pendiente" ${row.attendance==='Pendiente'?'selected':''}>Pendiente</option>
-                            <option value="Asistió" ${row.attendance==='Asistió'?'selected':''}>Asistió</option>
-                            <option value="No asistió" ${row.attendance==='No asistió'?'selected':''}>No asistió</option>
-                            <option value="Justificado" ${row.attendance==='Justificado'?'selected':''}>Justificado</option>
-                        </select>
-                    </td>
-                    <td class="py-2.5 px-4">
-                        <select ${disabled} onchange="setWeeklyRegisterParticipation(${index}, this.value)" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="Pendiente" ${row.participation==='Pendiente'?'selected':''}>Pendiente</option>
-                            <option value="Participó" ${row.participation==='Participó'?'selected':''}>Participó</option>
-                            <option value="No participó" ${row.participation==='No participó'?'selected':''}>No participó</option>
-                        </select>
-                    </td>
-                </tr>`).join('');
-            updateWeeklyRegisterPrintMeta();
+        function removeDistrictChurch(index) {
+            if (!isAdmin()) return;
+            const church = districtStructure.churches?.[index] || 'esta iglesia';
+            if (!confirm(`¿Deseas eliminar "${church}" de la estructura del distrito?`)) return;
+            districtStructure.churches.splice(index, 1);
+            renderDistrictStructure();
         }
 
-        window.setWeeklyRegisterAttendance = function(index, value) {
-            if (!isAdmin() || !currentWeeklyRegisterRows[index]) return;
-            currentWeeklyRegisterRows[index].attendance = value;
-        };
-        window.setWeeklyRegisterParticipation = function(index, value) {
-            if (!isAdmin() || !currentWeeklyRegisterRows[index]) return;
-            currentWeeklyRegisterRows[index].participation = value;
-        };
-
-        function updateWeeklyRegisterPrintMeta() {
-            const date = document.getElementById('weekly-register-date')?.value || '';
-            const type = document.getElementById('weekly-register-type')?.value || '';
-            const name = document.getElementById('weekly-register-name')?.value.trim() || '';
-            const gp = document.getElementById('weekly-register-gp')?.value || '';
-            const meta = document.getElementById('weekly-register-print-meta');
-            if (meta) meta.textContent = `${type}${gp ? ' • ' + gp : ''} • ${name || 'Sin nombre'} • ${date || 'Sin fecha'}`;
-        }
-
-        async function saveWeeklyProgramRegister() {
+        async function saveDistrictStructure() {
             if (!isAdmin()) {
-                showToast('Solo el administrador puede guardar registros.', 'error');
+                showToast('Solo el administrador puede guardar la estructura.', 'error');
                 return;
             }
-            const type = document.getElementById('weekly-register-type')?.value || '';
-            const date = document.getElementById('weekly-register-date')?.value || '';
-            const name = document.getElementById('weekly-register-name')?.value.trim() || '';
-            const gp = document.getElementById('weekly-register-gp')?.value || '';
-            if (!type || !date || !name) {
-                showToast('Completa Tipo de programa, Fecha y Nombre del programa.', 'error');
+            if (!cloudReady || !db || !currentUser) {
+                showToast('La sesión en la nube no está disponible.', 'error');
                 return;
             }
-            if (!currentWeeklyRegisterRows.length) {
-                prepareWeeklyProgramRegister();
-                if (!currentWeeklyRegisterRows.length) return;
-            }
-            const record = {
-                id: editingWeeklyRecordId || `weekly-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
-                type,
-                date,
-                name,
-                groupName: gp || '',
-                members: JSON.parse(JSON.stringify(currentWeeklyRegisterRows)),
-                createdAt: editingWeeklyRecordId ? (weeklyProgramRecords.find(r=>r.id===editingWeeklyRecordId)?.createdAt || new Date().toISOString()) : new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-            };
-            try {
-                await syncWeeklyProgramRecordToCloud(record);
-                weeklyProgramRecords = [record, ...weeklyProgramRecords.filter(r=>r.id!==record.id)];
-                weeklyProgramRecords.sort((a,b)=>`${b.date||''}`.localeCompare(`${a.date||''}`));
-                editingWeeklyRecordId = record.id;
-                renderWeeklyProgramHistory();
-                updateWeeklyRegisterPrintMeta();
-                showToast('Registro del programa semanal guardado correctamente.', 'success');
-            } catch (error) {
-                console.error(error);
-                showToast('No fue posible guardar el registro. Verifica la conexión y tus permisos.', 'error');
-            }
-        }
+            const districtInput = document.getElementById('district-name-input');
+            const churchInputs = [...document.querySelectorAll('.district-church-input')];
+            const district = String(districtInput?.value || '').trim();
+            const churches = churchInputs.map(input => String(input.value || '').trim()).filter(Boolean);
 
-        function loadWeeklyProgramRecord(recordId) {
-            const record = weeklyProgramRecords.find(r=>r.id===recordId);
-            if (!record) return;
-            switchView('weekly-register');
-            document.getElementById('weekly-register-type').value = record.type || 'Sociedad de Jóvenes';
-            document.getElementById('weekly-register-date').value = record.date || '';
-            document.getElementById('weekly-register-name').value = record.name || '';
-            document.getElementById('weekly-register-gp').value = record.groupName || '';
-            handleWeeklyRegisterTypeChange();
-            currentWeeklyRegisterRows = Array.isArray(record.members) ? JSON.parse(JSON.stringify(record.members)) : [];
-            editingWeeklyRecordId = record.id;
-            renderWeeklyRegisterTable();
-            showToast('Registro cargado para consulta/edición.', 'info');
-        }
-
-        async function deleteWeeklyProgramRecord(recordId) {
-            if (!isAdmin()) {
-                showToast('Solo el administrador puede eliminar registros.', 'error');
+            if (!district) {
+                showToast('Escribe el nombre del distrito.', 'error');
+                districtInput?.focus();
                 return;
             }
-            if (!confirm('¿Deseas eliminar este registro de programa semanal?')) return;
-            try {
-                await deleteWeeklyProgramRecordFromCloud(recordId);
-                weeklyProgramRecords = weeklyProgramRecords.filter(r=>r.id!==recordId);
-                if (editingWeeklyRecordId === recordId) clearWeeklyProgramRegister();
-                renderWeeklyProgramHistory();
-                showToast('Registro eliminado.', 'success');
-            } catch (error) {
-                console.error(error);
-                showToast('No fue posible eliminar el registro.', 'error');
+            if (!churches.length) {
+                showToast('Debe existir al menos una iglesia.', 'error');
+                return;
             }
-        }
-
-        function clearWeeklyProgramRegister() {
-            editingWeeklyRecordId = null;
-            currentWeeklyRegisterRows = [];
-            ['weekly-register-name','weekly-register-date'].forEach(id=>{
-                const el=document.getElementById(id);
-                if (el) el.value='';
+            const normalized = [];
+            const seen = new Set();
+            churches.forEach(name => {
+                const key = name.toLowerCase();
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    normalized.push(name);
+                }
             });
-            const gp=document.getElementById('weekly-register-gp');
-            if (gp) gp.value='';
-            renderWeeklyRegisterTable();
-            updateWeeklyRegisterPrintMeta();
-        }
 
-        function renderWeeklyProgramHistory() {
-            const container = document.getElementById('weekly-register-history');
-            const badge = document.getElementById('weekly-register-history-count');
-            if (!container) return;
-            const records = [...weeklyProgramRecords].sort((a,b)=>`${b.date||''}`.localeCompare(`${a.date||''}`));
-            if (badge) badge.textContent = records.length;
-            if (!records.length) {
-                container.innerHTML = '<div class="text-center py-8 text-slate-400 text-sm">No hay registros guardados todavía.</div>';
-                return;
+            try {
+                const structureRef = doc(db, 'artifacts', appId, 'public', 'data', 'ja_settings', 'church_structure');
+                const data = { district, churches: normalized, updatedAt: new Date().toISOString() };
+                await setDoc(structureRef, data, { merge: true });
+                districtStructure = { district, churches: normalized };
+                renderDistrictStructure();
+                showToast('Distrito e iglesias guardados correctamente.', 'success');
+            } catch (error) {
+                console.error('Error guardando Distrito e Iglesias:', error);
+                showToast('No fue posible guardar la estructura.', 'error');
             }
-            container.innerHTML = records.map(record => {
-                const total = Array.isArray(record.members) ? record.members.length : 0;
-                const present = (record.members||[]).filter(m=>m.attendance==='Asistió').length;
-                const participated = (record.members||[]).filter(m=>m.participation==='Participó').length;
-                return `<div class="p-4 rounded-xl border border-slate-200 bg-slate-50/60">
-                    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-                        <div>
-                            <div class="flex flex-wrap gap-2 items-center">
-                                <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">${escapeActivityHtml(record.type||'Programa')}</span>
-                                <span class="text-xs font-semibold text-slate-500">${escapeActivityHtml(record.date||'')}</span>
-                            </div>
-                            <h3 class="font-bold text-slate-900 mt-1">${escapeActivityHtml(record.name||'Sin nombre')}</h3>
-                            <p class="text-xs text-slate-500 mt-1">${record.groupName ? escapeActivityHtml(record.groupName)+' • ' : ''}${total} miembros • ${present} asistieron • ${participated} participaron</p>
-                        </div>
-                        <div class="flex flex-wrap gap-2 no-print-weekly">
-                            <button type="button" onclick="loadWeeklyProgramRecord('${escapeActivityHtml(record.id)}')" class="px-3 py-2 rounded-lg bg-blue-50 text-blue-700 text-xs font-semibold">Ver / editar</button>
-                            <button type="button" onclick="exportWeeklyProgramRecordToExcel('${escapeActivityHtml(record.id)}')" class="px-3 py-2 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-semibold">Excel</button>
-                            ${isAdmin()?`<button type="button" onclick="deleteWeeklyProgramRecord('${escapeActivityHtml(record.id)}')" class="px-3 py-2 rounded-lg bg-red-50 text-red-700 text-xs font-semibold">Eliminar</button>`:''}
-                        </div>
-                    </div>
-                </div>`;
-            }).join('');
-        }
-
-        function buildWeeklyRegisterExportTable(record) {
-            const rows = Array.isArray(record?.members) ? record.members : currentWeeklyRegisterRows;
-            return `<table border="1" cellspacing="0" cellpadding="5">
-                <tr><th colspan="4">Registro Programas Semanales</th></tr>
-                <tr><td><b>Tipo</b></td><td>${escapeActivityHtml(record?.type || document.getElementById('weekly-register-type')?.value || '')}</td><td><b>Fecha</b></td><td>${escapeActivityHtml(record?.date || document.getElementById('weekly-register-date')?.value || '')}</td></tr>
-                <tr><td><b>Programa</b></td><td>${escapeActivityHtml(record?.name || document.getElementById('weekly-register-name')?.value || '')}</td><td><b>Grupo</b></td><td>${escapeActivityHtml(record?.groupName || document.getElementById('weekly-register-gp')?.value || '')}</td></tr>
-                <tr><th>#</th><th>Miembro</th><th>Asistencia</th><th>Participación</th></tr>
-                ${rows.map((row,i)=>`<tr><td>${i+1}</td><td>${escapeActivityHtml(row.name||'')}</td><td>${escapeActivityHtml(row.attendance||'Pendiente')}</td><td>${escapeActivityHtml(row.participation||'Pendiente')}</td></tr>`).join('')}
-            </table>`;
-        }
-
-        function exportWeeklyProgramRegisterToExcel() {
-            const record = {
-                type: document.getElementById('weekly-register-type')?.value || '',
-                date: document.getElementById('weekly-register-date')?.value || '',
-                name: document.getElementById('weekly-register-name')?.value.trim() || '',
-                groupName: document.getElementById('weekly-register-gp')?.value || '',
-                members: currentWeeklyRegisterRows
-            };
-            if (!record.members.length) {
-                showToast('Carga primero los miembros del registro.', 'error');
-                return;
-            }
-            downloadWeeklyExcel(record);
-        }
-
-        function exportWeeklyProgramRecordToExcel(recordId) {
-            const record = weeklyProgramRecords.find(r=>r.id===recordId);
-            if (record) downloadWeeklyExcel(record);
-        }
-
-        function downloadWeeklyExcel(record) {
-            const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>${buildWeeklyRegisterExportTable(record)}</body></html>`;
-            const blob = new Blob(['\ufeff', html], {type:'application/vnd.ms-excel;charset=utf-8;'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `registro_programa_semanal_${record.date||'sin_fecha'}.xls`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(url);
-        }
-
-        function printWeeklyProgramRegister() {
-            if (!currentWeeklyRegisterRows.length) {
-                showToast('Carga primero los miembros del registro.', 'error');
-                return;
-            }
-            updateWeeklyRegisterPrintMeta();
-            document.body.classList.add('print-weekly-register');
-            setTimeout(() => {
-                window.print();
-                setTimeout(() => document.body.classList.remove('print-weekly-register'), 500);
-            }, 50);
         }
 
         function switchView(viewName, clubName = null) {
@@ -3146,17 +2870,16 @@
             if (viewName === 'dashboard') {
                 renderDashboard();
             }
+            if (viewName === 'district-structure') {
+                loadDistrictStructure();
+                renderDistrictStructure();
+            }
             if (viewName === 'attendance-history') {
                 renderAttendanceHistory();
             }
             if (viewName === 'attendance-individual') {
                 populateIndividualAttendanceParticipants();
                 renderIndividualAttendanceReport();
-            }
-            if (viewName === 'weekly-register') {
-                populateWeeklyRegisterGroups();
-                renderWeeklyProgramHistory();
-                renderWeeklyRegisterTable();
             }
         }
 
@@ -6156,19 +5879,6 @@
             window.print();
         }
 
-        Object.assign(window, {
-            openWeeklyProgramRegister,
-            handleWeeklyRegisterTypeChange,
-            prepareWeeklyProgramRegister,
-            saveWeeklyProgramRegister,
-            loadWeeklyProgramRecord,
-            deleteWeeklyProgramRecord,
-            clearWeeklyProgramRegister,
-            exportWeeklyProgramRegisterToExcel,
-            exportWeeklyProgramRecordToExcel,
-            printWeeklyProgramRegister
-        });
-
         // Exponer funciones al ámbito global window para eventos inline en HTML (necesario en type="module")
         // Actualiza el estado visual automáticamente cada minuto.
         // No cambia el valor guardado en Firestore.
@@ -6425,7 +6135,12 @@
             saveClubAssignments,
             clearClubAssignments,
             openResetModal,
-            closeConfirmModal
+            closeConfirmModal,
+            addDistrictChurch,
+            removeDistrictChurch,
+            saveDistrictStructure,
+            loadDistrictStructure,
+            renderDistrictStructure
         });
 
         // Advertencia nativa del navegador al recargar, cerrar o abandonar la página.
@@ -6435,8 +6150,6 @@
         initRoleCheckboxes();
         initEventListeners();
         setDefaultScheduleDate();
-        const weeklyDateInput = document.getElementById('weekly-register-date');
-        if (weeklyDateInput) weeklyDateInput.value = new Date().toISOString().slice(0,10);
         applyRolePermissionsUI();
         firebaseInitPromise = initCloudSync();
         setTimeout(() => { renderGeneralAttendanceReport(); renderActivitiesAttendancePanel(); }, 300);
