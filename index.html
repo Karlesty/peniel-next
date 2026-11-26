@@ -1692,6 +1692,15 @@
                     <p class="text-[10px] font-bold uppercase tracking-wider text-blue-600">Actividad JA</p>
                     <h3 id="activity-participants-title" class="font-extrabold text-slate-900 text-lg truncate">Participantes</h3>
                     <p id="activity-participants-count" class="text-xs text-slate-500 mt-0.5">0 participantes</p>
+                    <div id="activity-participants-capacity-wrap" class="hidden mt-2 w-full max-w-xs">
+                        <div class="flex items-center justify-between mb-1">
+                            <span id="activity-participants-capacity-label" class="text-[10px] font-bold text-slate-500">Cupo</span>
+                            <span id="activity-participants-capacity-status" class="text-[10px] font-bold text-slate-500"></span>
+                        </div>
+                        <div class="h-2 rounded-full bg-slate-100 overflow-hidden">
+                            <div id="activity-participants-capacity-bar" class="h-full rounded-full transition-all" style="width:0%"></div>
+                        </div>
+                    </div>
                 </div>
                 <button type="button" onclick="closeActivityParticipantsModal()" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">
                     <i class="fas fa-times"></i>
@@ -1722,9 +1731,10 @@
                             <input id="activity-new-participant-birthdate" type="date" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm">
                         </div>
                     </div>
-                    <button type="button" onclick="addManualActivityParticipant()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold">
+                    <button id="activity-add-manual-participant-btn" type="button" onclick="addManualActivityParticipant()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed">
                         <i class="fas fa-user-plus"></i><span>Agregar a participantes y Base de Datos</span>
                     </button>
+                    <p id="activity-participants-full-message" class="hidden text-xs font-semibold text-red-600">El cupo máximo ya fue alcanzado. Para agregar otra persona, primero debes quitar un participante.</p>
                 </div>
 
                 <div>
@@ -4252,7 +4262,32 @@
             if (!list) return;
 
             const participants = Array.isArray(activity?.participants) ? activity.participants : [];
-            if (count) count.textContent = `${participants.length}${getActivityCapacity(activity) !== null ? ' / ' + getActivityCapacity(activity) : ''} ${participants.length === 1 ? 'participante' : 'participantes'}`;
+            const capacity = getActivityCapacity(activity);
+            const capacityWrap = document.getElementById('activity-participants-capacity-wrap');
+            const capacityLabel = document.getElementById('activity-participants-capacity-label');
+            const capacityStatus = document.getElementById('activity-participants-capacity-status');
+            const capacityBar = document.getElementById('activity-participants-capacity-bar');
+            const manualButton = document.getElementById('activity-add-manual-participant-btn');
+            const fullMessage = document.getElementById('activity-participants-full-message');
+
+            if (count) count.textContent = `${participants.length}${capacity !== null ? ' / ' + capacity : ''} ${participants.length === 1 ? 'participante' : 'participantes'}`;
+
+            if (capacity !== null) {
+                const percentage = Math.min(100, Math.round((participants.length / capacity) * 100));
+                if (capacityWrap) capacityWrap.classList.remove('hidden');
+                if (capacityLabel) capacityLabel.textContent = `Cupo: ${participants.length} de ${capacity}`;
+                if (capacityStatus) capacityStatus.textContent = participants.length >= capacity ? 'COMPLETO' : `${capacity - participants.length} disponibles`;
+                if (capacityBar) {
+                    capacityBar.style.width = `${percentage}%`;
+                    capacityBar.className = `h-full rounded-full transition-all ${participants.length >= capacity ? 'bg-red-500' : 'bg-blue-500'}`;
+                }
+                if (manualButton) manualButton.disabled = participants.length >= capacity;
+                if (fullMessage) fullMessage.classList.toggle('hidden', participants.length < capacity);
+            } else {
+                if (capacityWrap) capacityWrap.classList.add('hidden');
+                if (manualButton) manualButton.disabled = false;
+                if (fullMessage) fullMessage.classList.add('hidden');
+            }
 
             if (!participants.length) {
                 list.innerHTML = `
@@ -4282,8 +4317,15 @@
             if (!container) return;
 
             const participants = Array.isArray(activity?.participants) ? activity.participants : [];
+            const capacity = getActivityCapacity(activity);
             const selectedIds = new Set(participants.map(p => p.memberId).filter(Boolean));
             const normalized = String(query || '').trim().toLowerCase();
+
+            if (capacity !== null && participants.length >= capacity) {
+                container.innerHTML = '<div class="p-3 rounded-xl bg-red-50 border border-red-100 text-xs text-red-700 font-semibold"><i class="fas fa-circle-exclamation mr-1"></i>El cupo máximo ya fue alcanzado.</div>';
+                return;
+            }
+
             const candidates = members
                 .filter(member => member && member.id && !selectedIds.has(member.id))
                 .filter(member => !normalized || String(member.name || '').toLowerCase().includes(normalized))
