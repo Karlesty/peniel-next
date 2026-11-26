@@ -2663,7 +2663,24 @@
         // ==========================================
         // 8. SECCIÓN DE CLUBES JUVENILES
         // ==========================================
-        function selectClubTab(clubName) {
+        function hasUnsavedClubChanges() {
+            if (!isAdmin()) return false;
+            initializePendingClubAssignments();
+
+            const persistedAssignments = {};
+            members.forEach(m => {
+                const role = m.clubRoles && m.clubRoles[activeClubTab];
+                if (role) persistedAssignments[role] = m.id;
+            });
+
+            const pendingKeys = Object.keys(pendingClubAssignments);
+            const persistedKeys = Object.keys(persistedAssignments);
+            if (pendingKeys.length !== persistedKeys.length) return true;
+
+            return pendingKeys.some(role => pendingClubAssignments[role] !== persistedAssignments[role]);
+        }
+
+        function switchClubTabWithoutWarning(clubName) {
             activeClubTab = clubName;
             activeClubClassFilter = '';
             initializePendingClubAssignments();
@@ -2686,6 +2703,26 @@
             }
 
             renderClubSection();
+        }
+
+        function selectClubTab(clubName) {
+            if (clubName === activeClubTab) return;
+
+            if (hasUnsavedClubChanges()) {
+                openConfirmModal(
+                    'Hay datos sin guardar',
+                    'Si sales de esta sección, los cambios no se guardarán. ¿Deseas salir sin guardar?',
+                    () => {
+                        // Descartar únicamente los cambios pendientes del ministerio actual.
+                        pendingClubAssignments = {};
+                        pendingClubAssignmentsTab = null;
+                        switchClubTabWithoutWarning(clubName);
+                    }
+                );
+                return;
+            }
+
+            switchClubTabWithoutWarning(clubName);
         }
 
         function renderClubSection() {
