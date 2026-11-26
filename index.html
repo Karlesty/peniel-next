@@ -2452,8 +2452,30 @@
             let firstMembersLoad = true;
             onSnapshot(membersCol, async (snapshot) => {
                 firstMembersLoad = false;
-                members = snapshot.docs.map(d => d.data());
-                members.sort((a, b) => a.name.localeCompare(b.name));
+                const allCloudMembers = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+
+                // Migración segura de los miembros existentes: todo registro que aún
+                // no tenga iglesia queda asociado a Peniel, que es la iglesia de trabajo
+                // inicial. No se eliminan ni se recrean documentos.
+                const penielId = normalizeChurchId('Peniel');
+                const migrationWrites = [];
+                const migratedMembers = allCloudMembers.map(member => {
+                    if (!member.churchId || !member.churchName) {
+                        const migrated = { ...member, churchId: penielId, churchName: 'Peniel' };
+                        if (isAdmin()) migrationWrites.push(syncMemberToCloud(migrated));
+                        return migrated;
+                    }
+                    return member;
+                });
+                if (migrationWrites.length) await Promise.allSettled(migrationWrites);
+
+                // Desde esta etapa, la colección sigue siendo ja_members, pero la
+                // aplicación solo muestra y utiliza los miembros de la iglesia activa.
+                members = migratedMembers.filter(member => {
+                    const churchId = member.churchId || normalizeChurchId(member.churchName);
+                    return churchId === normalizeChurchId(activeChurch);
+                });
+                members.sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
                 refreshAllUI();
                 if (!currentDraftSchedule) generateAutoSchedule(true);
             }, (err) => console.error('Error miembros nube:', err));
@@ -2487,10 +2509,30 @@
             loadDistrictStructure();
         }
 
+        function normalizeChurchId(name) {
+            return String(name || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-|-$/g, '');
+        }
+
+        function getActiveChurchContext() {
+            const churchName = String(activeChurch || 'Peniel').trim() || 'Peniel';
+            return { churchId: normalizeChurchId(churchName), churchName };
+        }
+
         async function syncMemberToCloud(memberObj) {
             if (!cloudReady || !currentUser || !db) return;
-            const ref = doc(db, 'artifacts', appId, 'public', 'data', 'ja_members', memberObj.id);
-            await setDoc(ref, memberObj);
+            const context = getActiveChurchContext();
+            const safeMember = { ...memberObj };
+            if (!safeMember.churchId || !safeMember.churchName) {
+                safeMember.churchId = context.churchId;
+                safeMember.churchName = context.churchName;
+            }
+            const ref = doc(db, 'artifacts', appId, 'public', 'data', 'ja_members', safeMember.id);
+            await setDoc(ref, safeMember);
         }
 
         async function deleteMemberFromCloud(memberId) {
@@ -2774,6 +2816,26 @@
             activeChurch = name;
             sessionStorage.setItem('ja_active_church', activeChurch);
             renderActiveChurchSelector();
+
+            // Refrescar inmediatamente la base visible de miembros sin esperar
+            // al siguiente evento de Firestore.
+            if (cloudReady && db) {
+                const membersCol = collection(db, 'artifacts', appId, 'public', 'data', 'ja_members');
+                getDocs(membersCol).then(snapshot => {
+                    members = snapshot.docs
+                        .map(d => ({ id: d.id, ...d.data() }))
+                        .map(member => {
+                            if (!member.churchId || !member.churchName) {
+                                return { ...member, churchId: normalizeChurchId('Peniel'), churchName: 'Peniel' };
+                            }
+                            return member;
+                        })
+                        .filter(member => (member.churchId || normalizeChurchId(member.churchName)) === normalizeChurchId(activeChurch))
+                        .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+                    refreshAllUI();
+                }).catch(err => console.error('Error al cambiar iglesia activa:', err));
+            }
+
             showToast(`Iglesia activa: ${activeChurch}`, 'success');
         }
 
@@ -3349,10 +3411,13 @@
             const gmClubRole = document.getElementById('member-gm-club-role').value;
             const roles = Array.from(document.querySelectorAll('input[name="member-roles"]:checked')).map(cb => cb.value);
 
+            const churchContext = getActiveChurchContext();
             const payload = {
                 name, documentType, documentNumber, birthDate, phone, email, bloodType, eps,
                 emergencyName, emergencyPhone, allergies, baptized, baptismDate,
-                gp, club, roles, gmInvestitureStatus, gmWorksClub, gmClubRole
+                gp, club, roles, gmInvestitureStatus, gmWorksClub, gmClubRole,
+                churchId: churchContext.churchId,
+                churchName: churchContext.churchName
             };
 
             if (id) {
