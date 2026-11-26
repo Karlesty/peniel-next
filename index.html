@@ -610,6 +610,11 @@
                     <span class="text-xs font-bold uppercase tracking-wider text-amber-600 bg-amber-50 px-3 py-1 rounded-full">Automatización Inteligente</span>
                     <h1 class="text-2xl font-extrabold text-slate-900 mt-2">Generador de Programaciones</h1>
                     <p class="text-slate-500 text-sm mt-1">Asigna roles automáticamente para Sociedad de Jóvenes (con Servicio de Canto) o Grupos Pequeños.</p>
+                    <div class="flex flex-wrap gap-2 mt-4">
+                        <button type="button" onclick="switchView('ja-program-attendance')" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold">
+                            <i class="fas fa-clipboard-check"></i> Registro Programas Semanales
+                        </button>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -963,10 +968,12 @@
                             <h1 class="text-2xl font-extrabold text-slate-900 mt-2">Actividades JA</h1>
                             <p class="text-slate-500 text-sm mt-1">Registra y consulta las actividades especiales del Ministerio JA.</p>
                         </div>
+                        <div class="flex flex-wrap gap-2">
                         <button type="button" onclick="openNewActivityForm()" class="admin-only inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-all cursor-pointer">
                             <i class="fas fa-plus"></i>
                             <span>Nueva actividad</span>
                         </button>
+                        </div>
                     </div>
                 </div>
 
@@ -1570,6 +1577,30 @@
             <!-- ========================================== -->
             <!-- VISTA: REPORTE GENERAL DE ASISTENCIA        -->
             <!-- ========================================== -->
+            <section id="view-ja-program-attendance" class="view-section hidden space-y-6 fade-in">
+                <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80">
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                        <div><span class="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full">Asistencia y participación</span><h1 class="text-2xl font-extrabold text-slate-900 mt-2">Registro Programas Semanales</h1><p class="text-slate-500 text-sm mt-1">Sociedad de Jóvenes y Grupo Pequeño.</p></div>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" onclick="printJaProgramAttendanceReport()" class="inline-flex items-center gap-2 px-3 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold"><i class="fas fa-print"></i> Imprimir / PDF</button>
+                            <button type="button" onclick="exportJaProgramAttendanceToExcel()" class="inline-flex items-center gap-2 px-3 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold"><i class="fas fa-file-excel"></i> Excel</button>
+                            <button type="button" onclick="openJaProgramAttendanceForm()" class="admin-only inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold rounded-xl"><i class="fas fa-plus"></i>Nuevo registro</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs"><p class="text-xs font-bold uppercase text-slate-500">Actividades próximas</p><p id="ja-upcoming-count" class="text-3xl font-extrabold text-blue-700 mt-2">0</p><p class="text-xs text-slate-400 mt-1">Próximos 7 días</p></div>
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs"><p class="text-xs font-bold uppercase text-slate-500">Actividades con pocos participantes</p><p id="ja-low-participants-count" class="text-3xl font-extrabold text-amber-600 mt-2">0</p><p class="text-xs text-slate-400 mt-1">Menos de 5 participantes</p></div>
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs"><p class="text-xs font-bold uppercase text-slate-500">Actividades programadas pendientes</p><p id="ja-pending-count" class="text-3xl font-extrabold text-indigo-700 mt-2">0</p><p class="text-xs text-slate-400 mt-1">Por realizar</p></div>
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs"><p class="text-xs font-bold uppercase text-slate-500">Alertas actividades próximas</p><p id="ja-alert-count" class="text-3xl font-extrabold text-red-600 mt-2">0</p><p class="text-xs text-slate-400 mt-1">En las próximas 48 horas</p></div>
+                </div>
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
+                    <div class="flex items-center justify-between mb-4"><h2 class="font-extrabold text-slate-900">Registros de asistencia y participación</h2><span id="ja-program-attendance-count" class="text-xs font-bold text-slate-500">0 registros</span></div>
+                    <div class="overflow-x-auto"><table class="w-full min-w-[760px] text-sm"><thead><tr class="border-b border-slate-200 text-left"><th class="px-3 py-3 text-[10px] uppercase text-slate-500">Programa</th><th class="px-3 py-3 text-[10px] uppercase text-slate-500">Fecha</th><th class="px-3 py-3 text-[10px] uppercase text-slate-500">Nombre</th><th class="px-3 py-3 text-[10px] uppercase text-slate-500">Participantes</th><th class="px-3 py-3 text-[10px] uppercase text-slate-500">Presentes</th><th class="px-3 py-3 text-[10px] uppercase text-slate-500">Participaron</th><th class="px-3 py-3 text-[10px] uppercase text-slate-500">Acciones</th></tr></thead><tbody id="ja-program-attendance-list"></tbody></table></div>
+                    <div id="ja-program-attendance-empty" class="hidden text-center py-10 text-slate-400"><i class="fas fa-clipboard-list text-4xl mb-3"></i><p>No hay registros todavía.</p></div>
+                </div>
+            </section>
+
             <section id="view-attendance-general-report" class="view-section hidden space-y-6 fade-in">
                 <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80 print:hidden">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -2035,6 +2066,32 @@
 
     <div id="toast-container" class="fixed bottom-20 lg:bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
+    <div id="ja-program-attendance-modal" class="fixed inset-0 z-[80] hidden bg-slate-900/60 backdrop-blur-sm items-center justify-center p-4">
+        <div class="bg-white w-full max-w-4xl max-h-[92vh] overflow-y-auto rounded-2xl shadow-2xl">
+            <div class="p-5 border-b border-slate-200 flex items-center justify-between"><div><h3 class="font-extrabold text-slate-900">Registro de asistencia y participación</h3><p class="text-xs text-slate-500 mt-1">Sociedad de Jóvenes o Grupo Pequeño</p></div><button onclick="closeJaProgramAttendanceForm()" class="w-9 h-9 rounded-lg bg-slate-100">✕</button></div>
+            <div class="p-5 space-y-5">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div><label class="block text-xs font-bold text-slate-600 mb-1">Programa <span class="text-red-500">*</span></label><select id="ja-program-type" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50"><option>Sociedad de Jóvenes</option><option>Grupo Pequeño</option></select></div>
+                    <div><label class="block text-xs font-bold text-slate-600 mb-1">Fecha <span class="text-red-500">*</span></label><input id="ja-program-date" type="date" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50"></div>
+                    <div><label class="block text-xs font-bold text-slate-600 mb-1">Nombre del programa <span class="text-red-500">*</span></label><input id="ja-program-name" type="text" placeholder="Ej. Sociedad de Jóvenes - sábado" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50"></div>
+                </div>
+                <div>
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                        <div><label class="block text-xs font-bold text-slate-600">Registro de asistencia y participación</label><p class="text-xs text-slate-400 mt-1">Aparecen todos los miembros de la base de datos. Marca asistencia y participación para cada persona.</p></div>
+                        <span id="ja-program-member-count" class="text-xs font-bold text-slate-500"></span>
+                    </div>
+                    <div class="overflow-x-auto border border-slate-200 rounded-xl">
+                        <table class="w-full min-w-[700px] text-sm"><thead class="bg-slate-50"><tr class="border-b border-slate-200 text-left">
+                            <th class="px-3 py-3 text-[10px] uppercase text-slate-500">Miembro</th><th class="px-3 py-3 text-[10px] uppercase text-slate-500">Asistencia</th><th class="px-3 py-3 text-[10px] uppercase text-slate-500">Participación</th>
+                        </tr></thead><tbody id="ja-program-participant-rows"></tbody></table>
+                    </div>
+                </div>
+                <div><label class="block text-xs font-bold text-slate-600 mb-1">Observaciones</label><textarea id="ja-program-notes" rows="3" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50"></textarea></div>
+                <div class="flex justify-end gap-2"><button onclick="closeJaProgramAttendanceForm()" class="px-4 py-2.5 rounded-xl bg-slate-100 font-semibold">Cancelar</button><button onclick="saveJaProgramAttendance()" class="admin-only px-4 py-2.5 rounded-xl bg-emerald-700 text-white font-semibold">Guardar registro</button></div>
+            </div>
+        </div>
+    </div>
+
     <!-- ========================================================== -->
     <!-- JAVASCRIPT: NUBE EN TIEMPO REAL, ROLES Y PWA               -->
     <!-- ========================================================== -->
@@ -2055,6 +2112,7 @@
 
         // Estado principal de la aplicación
         let members = [];
+        let jaProgramAttendanceRecords = [];
         let savedSchedules = [];
         let clubActivities = {};
         let currentDraftSchedule = null;
@@ -2483,6 +2541,7 @@
                 applyRolePermissionsUI();
                 // Cargar las actividades después de autenticar al usuario de consulta.
                 await loadActivitiesFromCloud();
+                await loadJaProgramAttendance();
                 if (savedSchedules.length > 0) {
                     currentDraftSchedule = JSON.parse(JSON.stringify(savedSchedules[0]));
                     renderDraftSchedule();
@@ -2497,10 +2556,12 @@
                     errorEl.textContent = 'El acceso con correo y contraseña no está habilitado en Firebase Authentication.';
                 } else if (code === 'auth/network-request-failed') {
                     errorEl.textContent = 'No se pudo conectar con Firebase. Revisa tu conexión a Internet e inténtalo nuevamente.';
+                } else if (code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found') {
+                    errorEl.textContent = 'Firebase rechazó las credenciales. Verifica el correo y la contraseña de esta cuenta.';
                 } else {
                     errorEl.textContent = err.message.includes('no es la cuenta')
                         ? 'Esta cuenta no está autorizada para Modo Consulta.'
-                        : 'Correo o contraseña incorrectos, o la cuenta aún no está configurada.';
+                        : `No se pudo iniciar sesión (${code || 'error desconocido'}).`;
                 }
                 errorEl.classList.remove('hidden');
             }
@@ -2518,7 +2579,7 @@
                 // una carrera entre la carga inicial y el inicio de sesión.
                 if (firebaseInitPromise) await firebaseInitPromise;
                 if (!cloudReady || !auth) throw new Error('Firebase no pudo inicializarse.');
-                if (auth.currentUser && auth.currentUser.isAnonymous) {
+                if (auth.currentUser) {
                     await signOut(auth);
                 }
                 const cred = await signInWithEmailAndPassword(auth, email, password);
@@ -2536,6 +2597,7 @@
                 applyRolePermissionsUI();
                 // Cargar las actividades después de autenticar al administrador.
                 await loadActivitiesFromCloud();
+                await loadJaProgramAttendance();
                 showToast('Acceso concedido como Administrador.', 'success');
             } catch (err) {
                 console.error(err);
@@ -2546,10 +2608,12 @@
                     errorEl.textContent = 'El acceso con correo y contraseña no está habilitado en Firebase Authentication.';
                 } else if (code === 'auth/network-request-failed') {
                     errorEl.textContent = 'No se pudo conectar con Firebase. Revisa tu conexión a Internet e inténtalo nuevamente.';
+                } else if (code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found') {
+                    errorEl.textContent = 'Firebase rechazó las credenciales. Verifica el correo y la contraseña del administrador.';
                 } else {
                     errorEl.textContent = err.message.includes('no es la cuenta')
                         ? 'Esta cuenta no está autorizada como Administrador.'
-                        : 'Correo o contraseña incorrectos, o la cuenta aún no está configurada.';
+                        : `No se pudo iniciar sesión (${code || 'error desconocido'}).`;
                 }
                 errorEl.classList.remove('hidden');
             }
@@ -2654,6 +2718,76 @@
             document.getElementById('sidebar').classList.add('-translate-x-full');
             document.getElementById('mobile-overlay').classList.add('hidden');
         }
+
+        function openJaProgramAttendanceForm(){
+            if(!isAdmin()){alert('Solo el administrador puede crear registros.');return;}
+            const modal=document.getElementById('ja-program-attendance-modal');
+            modal.classList.remove('hidden'); modal.classList.add('flex');
+            document.getElementById('ja-program-date').value=new Date().toISOString().slice(0,10);
+            document.getElementById('ja-program-type').value='Sociedad de Jóvenes';
+            document.getElementById('ja-program-name').value='';
+            document.getElementById('ja-program-notes').value='';
+            renderJaProgramMemberRows();
+        }
+        function closeJaProgramAttendanceForm(){const m=document.getElementById('ja-program-attendance-modal');if(m){m.classList.add('hidden');m.classList.remove('flex');}}
+        function renderJaProgramMemberRows(existingParticipants=[]){
+            const wrap=document.getElementById('ja-program-participant-rows'); if(!wrap)return;
+            const existing=new Map((Array.isArray(existingParticipants)?existingParticipants:[]).map(p=>[p.memberId||String(p.name||'').trim().toLowerCase(),p]));
+            const ordered=[...(Array.isArray(members)?members:[])].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'es'));
+            const count=document.getElementById('ja-program-member-count'); if(count)count.textContent=`${ordered.length} miembro${ordered.length===1?'':'s'}`;
+            if(!ordered.length){wrap.innerHTML='<tr><td colspan="3" class="px-3 py-8 text-center text-slate-400">No hay miembros registrados en la base de datos.</td></tr>';return;}
+            wrap.innerHTML=ordered.map(m=>{
+                const key=m.id||String(m.name||'').trim().toLowerCase(), d=existing.get(key)||existing.get(String(m.name||'').trim().toLowerCase())||{}, esc=escapeActivityHtml(String(m.name||'Sin nombre'));
+                return `<tr class="border-b border-slate-100 last:border-b-0">
+                    <td class="px-3 py-3 font-semibold text-slate-800">${esc}</td>
+                    <td class="px-3 py-2"><select class="ja-member-att w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm" data-member-id="${escapeActivityHtml(String(m.id||''))}" data-member-name="${esc}">
+                        <option value="Pendiente" ${d.attendance==='Pendiente'||!d.attendance?'selected':''}>Pendiente</option><option value="Presente" ${d.attendance==='Presente'?'selected':''}>Presente</option><option value="No asistió" ${d.attendance==='No asistió'?'selected':''}>No asistió</option><option value="Justificado" ${d.attendance==='Justificado'?'selected':''}>Justificado</option>
+                    </select></td>
+                    <td class="px-3 py-2"><select class="ja-member-part w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm">
+                        <option value="Pendiente" ${d.participation==='Pendiente'||!d.participation?'selected':''}>Pendiente</option><option value="Participó" ${d.participation==='Participó'?'selected':''}>Participó</option><option value="No participó" ${d.participation==='No participó'?'selected':''}>No participó</option>
+                    </select></td>
+                </tr>`;
+            }).join('');
+        }
+        async function saveJaProgramAttendance(){
+            if(!isAdmin())return;
+            const type=document.getElementById('ja-program-type').value,date=document.getElementById('ja-program-date').value,name=document.getElementById('ja-program-name').value.trim();
+            if(!date||!name){alert('Completa los campos obligatorios.');return;}
+            const participants=[...document.querySelectorAll('#ja-program-participant-rows tr')].map(row=>{
+                const att=row.querySelector('.ja-member-att'),part=row.querySelector('.ja-member-part'); if(!att||!part)return null;
+                return {memberId:att.dataset.memberId||'',name:att.dataset.memberName||'',attendance:att.value,participation:part.value};
+            }).filter(Boolean);
+            const id=`${type==='Sociedad de Jóvenes'?'sj':'gp'}-${date}-${Date.now()}`;
+            const record={id,type,date,name,participants,notes:document.getElementById('ja-program-notes').value.trim(),createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
+            try{await setDoc(doc(db,'artifacts',appId,'public','data','ja_program_attendance',id),record);jaProgramAttendanceRecords.unshift(record);renderJaProgramAttendance();closeJaProgramAttendanceForm();showToast('Registro guardado correctamente.','success');}
+            catch(e){console.error(e);alert('No fue posible guardar el registro.');}
+        }
+        function renderJaProgramAttendance(){
+            const list=document.getElementById('ja-program-attendance-list');if(!list)return;
+            const rows=[...jaProgramAttendanceRecords].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+            document.getElementById('ja-program-attendance-count').textContent=`${rows.length} registro${rows.length===1?'':'s'}`;
+            document.getElementById('ja-program-attendance-empty').classList.toggle('hidden',rows.length>0);
+            list.innerHTML=rows.map(r=>{const p=r.participants||[];return `<tr class="border-b border-slate-100"><td class="px-3 py-3 font-bold">${escapeActivityHtml(r.type)}</td><td class="px-3 py-3">${escapeActivityHtml(formatActivityDate(r.date))}</td><td class="px-3 py-3 font-semibold">${escapeActivityHtml(r.name)}</td><td class="px-3 py-3">${p.length}</td><td class="px-3 py-3 text-emerald-700 font-bold">${p.filter(x=>x.attendance==='Presente').length}</td><td class="px-3 py-3 text-blue-700 font-bold">${p.filter(x=>x.participation==='Participó').length}</td><td class="px-3 py-3"><button onclick="viewJaProgramAttendance('${escapeActivityHtml(r.id)}')" class="px-3 py-1.5 rounded-lg bg-slate-100 text-xs font-semibold">Ver</button> ${isAdmin()?`<button onclick="deleteJaProgramAttendance('${escapeActivityHtml(r.id)}')" class="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-xs font-semibold">Eliminar</button>`:''}</td></tr>`}).join('');
+        }
+        function viewJaProgramAttendance(id){const r=jaProgramAttendanceRecords.find(x=>x.id===id);if(!r)return;const rows=(r.participants||[]).map(p=>`${p.name}: ${p.attendance} / ${p.participation}`).join('\n');alert(`${r.type}\n${r.name}\n${formatActivityDate(r.date)}\n\n${rows||'Sin miembros'}${r.notes?'\n\n'+r.notes:''}`);}
+        async function deleteJaProgramAttendance(id){if(!isAdmin()||!confirm('¿Eliminar este registro?'))return;try{await deleteDoc(doc(db,'artifacts',appId,'public','data','ja_program_attendance',id));jaProgramAttendanceRecords=jaProgramAttendanceRecords.filter(x=>x.id!==id);renderJaProgramAttendance();}catch(e){console.error(e);alert('No fue posible eliminar el registro.');}}
+        async function loadJaProgramAttendance(){if(!db)return;try{const snap=await getDocs(collection(db,'artifacts',appId,'public','data','ja_program_attendance'));jaProgramAttendanceRecords=snap.docs.map(d=>({id:d.id,...d.data()}));renderJaProgramAttendance();}catch(e){console.warn('Registro Programas Semanales no disponible',e);}}
+        function buildJaProgramAttendanceExportRows(){
+            const rows=[];(Array.isArray(jaProgramAttendanceRecords)?jaProgramAttendanceRecords:[]).forEach(r=>(Array.isArray(r.participants)?r.participants:[]).forEach(p=>rows.push({programa:r.type||'',fecha:r.date||'',nombrePrograma:r.name||'',miembro:p.name||'',asistencia:p.attendance||'Pendiente',participacion:p.participation||'Pendiente',observaciones:r.notes||''})));return rows;
+        }
+        function exportJaProgramAttendanceToExcel(){
+            const rows=buildJaProgramAttendanceExportRows();if(!rows.length){alert('No hay registros para exportar.');return;}
+            const esc=v=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+            const html=`<html><head><meta charset="UTF-8"></head><body><table border="1"><tr><th>Programa</th><th>Fecha</th><th>Nombre del programa</th><th>Miembro</th><th>Asistencia</th><th>Participación</th><th>Observaciones</th></tr>${rows.map(r=>`<tr><td>${esc(r.programa)}</td><td>${esc(r.fecha)}</td><td>${esc(r.nombrePrograma)}</td><td>${esc(r.miembro)}</td><td>${esc(r.asistencia)}</td><td>${esc(r.participacion)}</td><td>${esc(r.observaciones)}</td></tr>`).join('')}</table></body></html>`;
+            const blob=new Blob([html],{type:'application/vnd.ms-excel;charset=utf-8;'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='registro_programas_semanales.xls';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+        }
+        function printJaProgramAttendanceReport(){
+            const rows=buildJaProgramAttendanceExportRows();if(!rows.length){alert('No hay registros para imprimir.');return;}
+            const win=window.open('','_blank');if(!win){alert('El navegador bloqueó la ventana de impresión.');return;}
+            const esc=v=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            win.document.write(`<!doctype html><html lang="es"><head><meta charset="UTF-8"><title>Registro Programas Semanales</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}h1{font-size:22px}table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid #ccc;padding:7px;text-align:left}th{background:#f3f4f6}</style></head><body><h1>Registro Programas Semanales</h1><p>Sociedad de Jóvenes y Grupo Pequeño</p><table><tr><th>Programa</th><th>Fecha</th><th>Nombre del programa</th><th>Miembro</th><th>Asistencia</th><th>Participación</th><th>Observaciones</th></tr>${rows.map(r=>`<tr><td>${esc(r.programa)}</td><td>${esc(r.fecha)}</td><td>${esc(r.nombrePrograma)}</td><td>${esc(r.miembro)}</td><td>${esc(r.asistencia)}</td><td>${esc(r.participacion)}</td><td>${esc(r.observaciones)}</td></tr>`).join('')}</table><script>window.onload=()=>window.print();<\/script></body></html>`);win.document.close();
+        }
+        function updateJaActivityAlerts(){const now=new Date(),in7=new Date(now.getTime()+7*86400000),all=Array.isArray(activities)?activities:[],pending=all.filter(a=>getEffectiveActivityStatus(a)==='Programada'),upcoming=pending.filter(a=>a.startDate&&new Date(`${a.startDate}T${a.startTime||'00:00'}`)>=now&&new Date(`${a.startDate}T${a.startTime||'00:00'}`)<=in7),low=pending.filter(a=>(Array.isArray(a.participants)?a.participants.length:0)<5),alerts=upcoming.filter(a=>new Date(`${a.startDate}T${a.startTime||'00:00'}`)-now<=48*3600000);const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v};set('ja-upcoming-count',upcoming.length);set('ja-low-participants-count',low.length);set('ja-pending-count',pending.length);set('ja-alert-count',alerts.length);}
 
         function switchView(viewName, clubName = null) {
             // Ocultar todas las vistas
@@ -5866,6 +6000,7 @@
 
         Object.assign(window, {
             switchView,
+            openJaProgramAttendanceForm, closeJaProgramAttendanceForm, addJaProgramParticipantRow, saveJaProgramAttendance, viewJaProgramAttendance, deleteJaProgramAttendance,
             openMemberModal,
             closeMemberModal,
             saveMemberForm,
@@ -5953,8 +6088,9 @@
         initEventListeners();
         setDefaultScheduleDate();
         applyRolePermissionsUI();
+        setInterval(updateJaActivityAlerts, 60000);
         firebaseInitPromise = initCloudSync();
-        setTimeout(() => { renderGeneralAttendanceReport(); renderActivitiesAttendancePanel(); }, 300);
+        setTimeout(() => { renderGeneralAttendanceReport(); renderActivitiesAttendancePanel(); updateJaActivityAlerts(); }, 300);
         // No intentar leer Firestore antes de que exista una sesión autenticada.
         firebaseInitPromise.catch(() => {});
     </script>
