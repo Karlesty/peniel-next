@@ -2680,6 +2680,16 @@
             return pendingKeys.some(role => pendingClubAssignments[role] !== persistedAssignments[role]);
         }
 
+        // Aviso del navegador si se intenta recargar, cerrar la pestaña o salir de la página
+        // mientras existen cambios de cargos sin guardar.
+        function handleBeforeUnloadUnsavedClubChanges(event) {
+            if (!hasUnsavedClubChanges()) return;
+
+            event.preventDefault();
+            event.returnValue = 'Hay datos sin guardar. Si sales de esta página, los cambios no se guardarán.';
+            return event.returnValue;
+        }
+
         function switchClubTabWithoutWarning(clubName) {
             activeClubTab = clubName;
             activeClubClassFilter = '';
@@ -3398,6 +3408,9 @@
             openResetModal,
             closeConfirmModal
         });
+
+        // Advertencia nativa del navegador al recargar, cerrar o abandonar la página.
+        window.addEventListener('beforeunload', handleBeforeUnloadUnsavedClubChanges);
 
         // Inicializar aplicación
         initRoleCheckboxes();
