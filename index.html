@@ -4086,7 +4086,7 @@
             const content = document.getElementById('activity-details-content');
             if (title) title.textContent = activity.name || 'Detalles de la actividad';
             const rows = [];
-            rows.push(['Tipo', activity.type || 'Sin tipo'], ['Fecha', `${formatActivityDate(activity.startDate)}${activity.endDate ? ' al ' + formatActivityDate(activity.endDate) : ''}`], ['Hora', `${activity.startTime || 'Sin hora'}${activity.endTime ? ' a ' + activity.endTime : ''}`], ['Lugar', activity.place || 'Sin lugar'], ['Cupo máximo', activity.maxCapacity ? String(activity.maxCapacity) : 'Sin límite'], ['Costo de participación', activity.participationCost !== null && activity.participationCost !== undefined && activity.participationCost !== '' ? `$${Number(activity.participationCost).toLocaleString('es-CO')}` : 'Sin costo definido'], ['Estado', activity.status || 'Programada']);
+            rows.push(['Tipo', activity.type || 'Sin tipo'], ['Fecha', `${formatActivityDate(activity.startDate)}${activity.endDate ? ' al ' + formatActivityDate(activity.endDate) : ''}`], ['Hora', `${activity.startTime || 'Sin hora'}${activity.endTime ? ' a ' + activity.endTime : ''}`], ['Lugar', activity.place || 'Sin lugar'], ['Cupo máximo', activity.maxCapacity ? String(activity.maxCapacity) : 'Sin límite'], ['Costo de participación', activity.participationCost !== null && activity.participationCost !== undefined && activity.participationCost !== '' ? `$${Number(activity.participationCost).toLocaleString('es-CO')}` : 'Sin costo definido'], ['Estado', getEffectiveActivityStatus(activity)]);
             if (activity.description) rows.push(['Descripción / objetivo', activity.description]);
             let html = '<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">';
             rows.forEach(([label,value]) => { html += `<div class="p-3 rounded-xl bg-slate-50 border border-slate-200"><p class="text-[10px] font-bold uppercase text-slate-500">${escapeActivityHtml(label)}</p><p class="text-sm font-semibold text-slate-800 mt-1 whitespace-pre-line">${escapeActivityHtml(value)}</p></div>`; });
@@ -4127,7 +4127,7 @@
                 `📍 Lugar: ${activity.place || 'Sin lugar'}`,
                 `👥 Cupo: ${activity.maxCapacity ? `${Array.isArray(activity.participants) ? activity.participants.length : 0} / ${activity.maxCapacity}` : 'Sin límite'}`,
                 `💰 Costo: ${activity.participationCost !== null && activity.participationCost !== undefined && activity.participationCost !== '' ? `$${Number(activity.participationCost).toLocaleString('es-CO')}` : 'Sin costo definido'}`,
-                `🔔 Estado: ${activity.status || 'Programada'}`
+                `🔔 Estado: ${getEffectiveActivityStatus(activity)}`
             ];
 
             if (activity.responsible?.name || activity.responsible) lines.push(`👤 Responsable: ${activity.responsible?.name || activity.responsible}`);
@@ -4457,6 +4457,33 @@
             }
         }
 
+        // Estado efectivo: no modifica Firestore automáticamente.
+        // Si una actividad sigue Programada pero ya terminó, se muestra como Realizada.
+        function getEffectiveActivityStatus(activity) {
+            const storedStatus = activity?.status || 'Programada';
+            if (storedStatus === 'Cancelada' || storedStatus === 'Realizada') return storedStatus;
+
+            const endDate = activity?.endDate || activity?.startDate;
+            if (!endDate) return storedStatus;
+
+            let endTime = activity?.endTime || '';
+            if (!endTime) {
+                endTime = activity?.endDate ? '23:59' : (activity?.startTime || '23:59');
+            }
+
+            const end = new Date(`${endDate}T${endTime}:00`);
+            if (Number.isNaN(end.getTime())) return storedStatus;
+            return new Date() > end ? 'Realizada' : storedStatus;
+        }
+
+        function getActivityEndDateTime(activity) {
+            const endDate = activity?.endDate || activity?.startDate;
+            if (!endDate) return null;
+            const endTime = activity?.endTime || (activity?.endDate ? '23:59' : (activity?.startTime || '23:59'));
+            const end = new Date(`${endDate}T${endTime}:00`);
+            return Number.isNaN(end.getTime()) ? null : end;
+        }
+
         function getFilteredActivities() {
             const search = (document.getElementById('activities-search')?.value || '').trim().toLowerCase();
             const date = document.getElementById('activities-date-filter')?.value || '';
@@ -4469,7 +4496,7 @@
                 const matchesDate = !date || activity.startDate === date || activity.endDate === date ||
                     (activity.startDate && activity.endDate && activity.startDate < date && activity.endDate > date);
                 const matchesType = !type || activity.type === type;
-                const matchesStatus = !status || (activity.status || 'Programada') === status;
+                const matchesStatus = !status || getEffectiveActivityStatus(activity) === status;
                 return matchesSearch && matchesDate && matchesType && matchesStatus;
             });
         }
@@ -4519,7 +4546,7 @@
                                     ${escapeActivityHtml(activity.type || 'Sin tipo')}
                                 </span>
                                 <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-slate-100 text-slate-600">
-                                    ${escapeActivityHtml(activity.status || 'Programada')}
+                                    ${escapeActivityHtml(getEffectiveActivityStatus(activity))}
                                 </span>
                             </div>
                             <h3 class="font-bold text-slate-900 text-sm">${escapeActivityHtml(activity.name || 'Sin nombre')}</h3>
@@ -4930,6 +4957,18 @@
         }
 
         // Exponer funciones al ámbito global window para eventos inline en HTML (necesario en type="module")
+        // Actualiza el estado visual automáticamente cada minuto.
+        // No cambia el valor guardado en Firestore.
+        setInterval(() => {
+            if (Array.isArray(activities) && activities.length) {
+                renderActivitiesList();
+                if (activeDetailsActivityId) {
+                    const current = activities.find(item => item.id === activeDetailsActivityId);
+                    if (current) viewActivityDetails(activeDetailsActivityId);
+                }
+            }
+        }, 60000);
+
         Object.assign(window, {
             switchView,
             openMemberModal,
