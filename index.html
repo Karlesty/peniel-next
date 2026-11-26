@@ -254,18 +254,6 @@
                         <i class="fas fa-calendar-days w-5 text-center"></i>
                         <span>Actividades JA</span>
                     </button>
-                    <button data-view="attendance-history" class="nav-btn w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-white transition-all">
-                        <i class="fas fa-clock-rotate-left w-5 text-center"></i>
-                        <span>Historial de asistencia</span>
-                    </button>
-                    <button data-view="attendance-general-report" class="nav-btn w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-white transition-all">
-                        <i class="fas fa-chart-column w-5 text-center"></i>
-                        <span>Reporte general de asistencia</span>
-                    </button>
-                    <button data-view="attendance-individual" class="nav-btn w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-white transition-all">
-                        <i class="fas fa-user-chart w-5 text-center"></i>
-                        <span>Reporte individual</span>
-                    </button>
 
                     <div class="pt-4 pb-1">
                         <p class="px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Ministerios Juveniles</p>
@@ -971,6 +959,29 @@
                         <button type="button" onclick="openNewActivityForm()" class="admin-only inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-all cursor-pointer">
                             <i class="fas fa-plus"></i>
                             <span>Nueva actividad</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-slate-200/80">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                        <div>
+                            <h2 class="font-bold text-slate-900">Reportes de asistencia</h2>
+                            <p class="text-xs text-slate-500 mt-1">Consulta el historial y los reportes de asistencia de las Actividades JA.</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <button type="button" onclick="switchView('attendance-history')" class="w-full flex items-center gap-3 p-4 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300 transition-all text-left cursor-pointer">
+                            <span class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0"><i class="fas fa-clock-rotate-left"></i></span>
+                            <span><strong class="block text-sm text-slate-800">Historial</strong><small class="text-xs text-slate-500">Consulta todos los registros de asistencia.</small></span>
+                        </button>
+                        <button type="button" onclick="switchView('attendance-general-report')" class="w-full flex items-center gap-3 p-4 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300 transition-all text-left cursor-pointer">
+                            <span class="w-10 h-10 rounded-xl bg-violet-100 text-violet-700 flex items-center justify-center shrink-0"><i class="fas fa-chart-column"></i></span>
+                            <span><strong class="block text-sm text-slate-800">Reporte general</strong><small class="text-xs text-slate-500">Resumen consolidado de asistencia.</small></span>
+                        </button>
+                        <button type="button" onclick="switchView('attendance-individual')" class="w-full flex items-center gap-3 p-4 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300 transition-all text-left cursor-pointer">
+                            <span class="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0"><i class="fas fa-user-chart"></i></span>
+                            <span><strong class="block text-sm text-slate-800">Reporte individual</strong><small class="text-xs text-slate-500">Seguimiento por participante.</small></span>
                         </button>
                     </div>
                 </div>
