@@ -1737,6 +1737,37 @@
         </div>
     </div>
 
+
+    <!-- ========================================================== -->
+    <!-- MODAL: ASISTENCIA DE ACTIVIDAD                              -->
+    <!-- ========================================================== -->
+    <div id="activity-attendance-modal" class="fixed inset-0 z-[65] hidden items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden border border-slate-200">
+            <div class="flex items-center justify-between p-5 border-b border-slate-200">
+                <div class="min-w-0">
+                    <p class="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Asistencia · Actividad JA</p>
+                    <h3 id="activity-attendance-title" class="font-extrabold text-slate-900 text-lg truncate">Registrar asistencia</h3>
+                    <p id="activity-attendance-summary" class="text-xs text-slate-500 mt-0.5">0 participantes</p>
+                </div>
+                <button type="button" onclick="closeActivityAttendanceModal()" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-5 overflow-y-auto max-h-[calc(90vh-88px)] space-y-4">
+                <div class="rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-700">
+                    Marca el estado de cada participante. Solo el administrador puede guardar los cambios.
+                </div>
+                <div id="activity-attendance-list" class="space-y-2"></div>
+                <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="closeActivityAttendanceModal()" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200">Cerrar</button>
+                    <button type="button" onclick="saveActivityAttendance()" class="admin-only inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold">
+                        <i class="fas fa-floppy-disk"></i><span>Guardar asistencia</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="toast-container" class="fixed bottom-20 lg:bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
     <!-- ========================================================== -->
@@ -4511,6 +4542,138 @@
             renderActivitiesList();
         }
 
+
+        let activeAttendanceActivityId = null;
+        let pendingActivityAttendance = {};
+
+        function getActiveAttendanceActivity() {
+            if (!activeAttendanceActivityId) return null;
+            return activities.find(item => item.id === activeAttendanceActivityId) || null;
+        }
+
+        function normalizeAttendanceStatus(value) {
+            const allowed = ['Pendiente', 'Presente', 'No asistió', 'Justificado'];
+            return allowed.includes(value) ? value : 'Pendiente';
+        }
+
+        function openActivityAttendance(activityId) {
+            const activity = activities.find(item => item.id === activityId);
+            if (!activity) {
+                showToast('No se encontró la actividad.', 'error');
+                return;
+            }
+            activeAttendanceActivityId = activityId;
+            const participants = Array.isArray(activity.participants) ? activity.participants : [];
+            const saved = activity.attendance && typeof activity.attendance === 'object' ? activity.attendance : {};
+            pendingActivityAttendance = {};
+            participants.forEach((participant, index) => {
+                const key = participant.memberId || `manual-${index}-${String(participant.name || '').trim().toLowerCase()}`;
+                pendingActivityAttendance[key] = normalizeAttendanceStatus(saved[key]);
+            });
+            const title = document.getElementById('activity-attendance-title');
+            if (title) title.textContent = activity.name || 'Registrar asistencia';
+            renderActivityAttendance();
+            const modal = document.getElementById('activity-attendance-modal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+        }
+
+        function closeActivityAttendanceModal() {
+            const modal = document.getElementById('activity-attendance-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+            activeAttendanceActivityId = null;
+            pendingActivityAttendance = {};
+        }
+
+        function setActivityAttendanceStatus(key, status) {
+            if (!isAdmin()) {
+                showToast('Solo el administrador puede modificar la asistencia.', 'error');
+                return;
+            }
+            pendingActivityAttendance[key] = normalizeAttendanceStatus(status);
+            renderActivityAttendance();
+        }
+
+        function renderActivityAttendance() {
+            const activity = getActiveAttendanceActivity();
+            const list = document.getElementById('activity-attendance-list');
+            const summary = document.getElementById('activity-attendance-summary');
+            if (!list || !activity) return;
+            const participants = Array.isArray(activity.participants) ? activity.participants : [];
+            let present = 0, absent = 0, justified = 0, pending = 0;
+            participants.forEach((participant, index) => {
+                const key = participant.memberId || `manual-${index}-${String(participant.name || '').trim().toLowerCase()}`;
+                const status = normalizeAttendanceStatus(pendingActivityAttendance[key]);
+                if (status === 'Presente') present++;
+                else if (status === 'No asistió') absent++;
+                else if (status === 'Justificado') justified++;
+                else pending++;
+            });
+            if (summary) summary.textContent = `${participants.length} participantes · ${present} presentes · ${absent} no asistieron · ${justified} justificados${pending ? ` · ${pending} pendientes` : ''}`;
+            if (!participants.length) {
+                list.innerHTML = `
+                    <div class="text-center py-8 rounded-xl border border-dashed border-slate-200 text-slate-400">
+                        <i class="fas fa-user-clock text-2xl mb-2"></i>
+                        <p class="text-sm font-semibold">No hay participantes registrados</p>
+                        <p class="text-xs mt-1">Primero agrega participantes a esta actividad.</p>
+                    </div>`;
+                return;
+            }
+            const options = ['Pendiente', 'Presente', 'No asistió', 'Justificado'];
+            list.innerHTML = participants.map((participant, index) => {
+                const key = participant.memberId || `manual-${index}-${String(participant.name || '').trim().toLowerCase()}`;
+                const current = normalizeAttendanceStatus(pendingActivityAttendance[key]);
+                return `
+                    <div class="flex flex-col md:flex-row md:items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200">
+                        <div class="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 font-bold text-xs">${index + 1}</div>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-sm font-bold text-slate-800 truncate">${escapeActivityHtml(participant.name || 'Sin nombre')}</p>
+                            <p class="text-[10px] text-slate-400">${participant.memberId ? 'Miembro de la Base de Datos' : 'Registro manual'}</p>
+                        </div>
+                        <select ${isAdmin() ? '' : 'disabled'} onchange="setActivityAttendanceStatus('${escapeActivityHtml(key)}', this.value)" class="w-full md:w-40 px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-200">
+                            ${options.map(option => `<option value="${escapeActivityHtml(option)}" ${current === option ? 'selected' : ''}>${escapeActivityHtml(option)}</option>`).join('')}
+                        </select>
+                    </div>`;
+            }).join('');
+        }
+
+        async function saveActivityAttendance() {
+            if (!isAdmin()) {
+                showToast('Solo el administrador puede guardar la asistencia.', 'error');
+                return;
+            }
+            const activity = getActiveAttendanceActivity();
+            if (!activity || !db) {
+                showToast('No se encontró la actividad o la conexión no está disponible.', 'error');
+                return;
+            }
+            try {
+                const participants = Array.isArray(activity.participants) ? activity.participants : [];
+                const attendance = {};
+                participants.forEach((participant, index) => {
+                    const key = participant.memberId || `manual-${index}-${String(participant.name || '').trim().toLowerCase()}`;
+                    attendance[key] = normalizeAttendanceStatus(pendingActivityAttendance[key]);
+                });
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'ja_activities', activity.id), {
+                    attendance,
+                    updatedAt: new Date().toISOString()
+                }, { merge: true });
+                const local = activities.find(item => item.id === activity.id);
+                if (local) local.attendance = attendance;
+                showToast('Asistencia guardada correctamente.', 'success');
+                renderActivityAttendance();
+                renderActivitiesList();
+            } catch (error) {
+                console.error('Error guardando asistencia:', error);
+                showToast('No fue posible guardar la asistencia.', 'error');
+            }
+        }
+
         function renderActivitiesList() {
             const container = document.getElementById('activities-list');
             const count = document.getElementById('activities-count');
@@ -4572,6 +4735,9 @@
                             <div class="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-slate-100">
                                 <button type="button" onclick="openActivityParticipants('${escapeActivityHtml(activity.id)}')" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs font-bold transition-colors cursor-pointer">
                                     <i class="fas fa-users"></i><span>Ver participantes (${Array.isArray(activity.participants) ? activity.participants.length : 0})</span>
+                                </button>
+                                <button type="button" onclick="openActivityAttendance('${escapeActivityHtml(activity.id)}')" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-700 text-xs font-bold transition-colors cursor-pointer">
+                                    <i class="fas fa-clipboard-check"></i><span>Asistencia</span>
                                 </button>
                                 <button type="button" onclick="copyActivityToWhatsApp('${escapeActivityHtml(activity.id)}')" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-green-100 hover:bg-green-200 text-green-700 text-xs font-bold transition-colors cursor-pointer">
                                     <i class="fab fa-whatsapp"></i><span>Copiar para WhatsApp</span>
@@ -5014,6 +5180,10 @@
             copyDetailsActivityToWhatsApp,
             openActivityParticipants,
             closeActivityParticipantsModal,
+            openActivityAttendance,
+            closeActivityAttendanceModal,
+            setActivityAttendanceStatus,
+            saveActivityAttendance,
             refreshActivityMembersDatalist,
             setupActivityMemberSuggestions,
             selectActivityMemberSuggestion,
