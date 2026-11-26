@@ -1596,6 +1596,61 @@
         </div>
     </div>
 
+    <!-- ========================================================== -->
+    <!-- MODAL: PARTICIPANTES DE ACTIVIDAD                           -->
+    <!-- ========================================================== -->
+    <div id="activity-participants-modal" class="fixed inset-0 z-[60] hidden items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden border border-slate-200">
+            <div class="flex items-center justify-between p-5 border-b border-slate-200">
+                <div class="min-w-0">
+                    <p class="text-[10px] font-bold uppercase tracking-wider text-blue-600">Actividad JA</p>
+                    <h3 id="activity-participants-title" class="font-extrabold text-slate-900 text-lg truncate">Participantes</h3>
+                    <p id="activity-participants-count" class="text-xs text-slate-500 mt-0.5">0 participantes</p>
+                </div>
+                <button type="button" onclick="closeActivityParticipantsModal()" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="p-5 overflow-y-auto max-h-[calc(90vh-88px)] space-y-5">
+                <div id="activity-participants-admin-panel" class="hidden space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Buscar miembro existente</label>
+                        <input id="activity-participant-search" type="text" autocomplete="off" oninput="searchActivityParticipants()" placeholder="Escribe un nombre..." class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-200">
+                        <div id="activity-participant-suggestions" class="mt-2 space-y-1 max-h-40 overflow-y-auto"></div>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <div class="h-px bg-slate-200 flex-1"></div>
+                        <span class="text-[10px] font-bold uppercase text-slate-400">o registrar una persona nueva</span>
+                        <div class="h-px bg-slate-200 flex-1"></div>
+                    </div>
+
+                    <div class="grid md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Nombre completo</label>
+                            <input id="activity-new-participant-name" type="text" placeholder="Nombre completo" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Fecha de nacimiento</label>
+                            <input id="activity-new-participant-birthdate" type="date" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+                        </div>
+                    </div>
+                    <button type="button" onclick="addManualActivityParticipant()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold">
+                        <i class="fas fa-user-plus"></i><span>Agregar a participantes y Base de Datos</span>
+                    </button>
+                </div>
+
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="text-xs font-extrabold uppercase tracking-wide text-slate-700">Lista de participantes</h4>
+                    </div>
+                    <div id="activity-participants-list" class="space-y-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="toast-container" class="fixed bottom-20 lg:bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
     <!-- ========================================================== -->
@@ -3955,6 +4010,14 @@
                 }
             });
 
+            const participants = Array.isArray(activity.participants) ? activity.participants : [];
+            if (participants.length) {
+                lines.push('', `👥 Participantes (${participants.length}):`);
+                participants.forEach((participant, index) => {
+                    lines.push(`${index + 1}. ${participant.name || 'Sin nombre'}`);
+                });
+            }
+
             lines.push('', 'Peniel Next');
             return lines.join('\n');
         }
@@ -3987,6 +4050,232 @@
             } catch (error) {
                 console.error('Error copiando actividad:', error);
                 showToast('No se pudo copiar la información. Inténtalo nuevamente.', 'error');
+            }
+        }
+
+        let activeParticipantsActivityId = null;
+
+        function openActivityParticipants(activityId) {
+            const activity = activities.find(item => item.id === activityId);
+            if (!activity) {
+                showToast('No se encontró la actividad.', 'error');
+                return;
+            }
+
+            activeParticipantsActivityId = activityId;
+            const modal = document.getElementById('activity-participants-modal');
+            const title = document.getElementById('activity-participants-title');
+            const adminPanel = document.getElementById('activity-participants-admin-panel');
+            const search = document.getElementById('activity-participant-search');
+            const nameInput = document.getElementById('activity-new-participant-name');
+            const birthInput = document.getElementById('activity-new-participant-birthdate');
+
+            if (title) title.textContent = activity.name || 'Participantes';
+            if (adminPanel) adminPanel.classList.toggle('hidden', !isAdmin());
+            if (search) search.value = '';
+            if (nameInput) nameInput.value = '';
+            if (birthInput) birthInput.value = '';
+
+            renderActivityParticipants();
+            renderActivityParticipantSuggestions('');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+        }
+
+        function closeActivityParticipantsModal() {
+            const modal = document.getElementById('activity-participants-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+            activeParticipantsActivityId = null;
+        }
+
+        function getActiveParticipantsActivity() {
+            if (!activeParticipantsActivityId) return null;
+            return activities.find(item => item.id === activeParticipantsActivityId) || null;
+        }
+
+        function renderActivityParticipants() {
+            const activity = getActiveParticipantsActivity();
+            const list = document.getElementById('activity-participants-list');
+            const count = document.getElementById('activity-participants-count');
+            if (!list) return;
+
+            const participants = Array.isArray(activity?.participants) ? activity.participants : [];
+            if (count) count.textContent = `${participants.length} ${participants.length === 1 ? 'participante' : 'participantes'}`;
+
+            if (!participants.length) {
+                list.innerHTML = `
+                    <div class="text-center py-8 rounded-xl border border-dashed border-slate-200 text-slate-400">
+                        <i class="fas fa-user-group text-2xl mb-2"></i>
+                        <p class="text-sm font-semibold">No hay participantes registrados</p>
+                        <p class="text-xs mt-1">${isAdmin() ? 'Puedes agregar miembros desde la parte superior.' : 'Todavía no se han agregado participantes.'}</p>
+                    </div>`;
+                return;
+            }
+
+            list.innerHTML = participants.map((participant, index) => `
+                <div class="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200">
+                    <div class="w-9 h-9 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 font-bold text-xs">${index + 1}</div>
+                    <div class="min-w-0 flex-1">
+                        <p class="text-sm font-bold text-slate-800 truncate">${escapeActivityHtml(participant.name || 'Sin nombre')}</p>
+                        <p class="text-[10px] text-slate-400">${participant.memberId ? 'Miembro de la Base de Datos' : 'Registro manual'}</p>
+                    </div>
+                    ${isAdmin() ? `<button type="button" onclick="removeActivityParticipant('${escapeActivityHtml(participant.memberId || '')}')" class="w-9 h-9 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 flex items-center justify-center" title="Quitar participante"><i class="fas fa-user-minus text-xs"></i></button>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function renderActivityParticipantSuggestions(query) {
+            const container = document.getElementById('activity-participant-suggestions');
+            const activity = getActiveParticipantsActivity();
+            if (!container) return;
+
+            const participants = Array.isArray(activity?.participants) ? activity.participants : [];
+            const selectedIds = new Set(participants.map(p => p.memberId).filter(Boolean));
+            const normalized = String(query || '').trim().toLowerCase();
+            const candidates = members
+                .filter(member => member && member.id && !selectedIds.has(member.id))
+                .filter(member => !normalized || String(member.name || '').toLowerCase().includes(normalized))
+                .slice(0, 8);
+
+            if (!candidates.length) {
+                container.innerHTML = normalized
+                    ? '<p class="text-xs text-slate-400 px-2 py-2">No se encontraron miembros. Puedes registrarlo como persona nueva.</p>'
+                    : '<p class="text-xs text-slate-400 px-2 py-2">Escribe para buscar miembros.</p>';
+                return;
+            }
+
+            container.innerHTML = candidates.map(member => `
+                <button type="button" onclick="addExistingActivityParticipant('${escapeActivityHtml(member.id)}')" class="w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-blue-50 border border-transparent hover:border-blue-100 transition-colors">
+                    <div class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center"><i class="fas fa-user text-xs"></i></div>
+                    <div class="min-w-0 flex-1"><p class="text-xs font-bold text-slate-700 truncate">${escapeActivityHtml(member.name || 'Sin nombre')}</p><p class="text-[10px] text-slate-400">Agregar a esta actividad</p></div>
+                    <i class="fas fa-plus text-xs text-blue-600"></i>
+                </button>
+            `).join('');
+        }
+
+        function searchActivityParticipants() {
+            const input = document.getElementById('activity-participant-search');
+            renderActivityParticipantSuggestions(input?.value || '');
+        }
+
+        async function saveActivityParticipants(activity) {
+            const activityRef = doc(db, 'artifacts', appId, 'public', 'data', 'ja_activities', activity.id);
+            await setDoc(activityRef, { participants: Array.isArray(activity.participants) ? activity.participants : [], updatedAt: new Date().toISOString() }, { merge: true });
+        }
+
+        async function addExistingActivityParticipant(memberId) {
+            if (!isAdmin()) return;
+            const activity = getActiveParticipantsActivity();
+            const member = members.find(item => item.id === memberId);
+            if (!activity || !member) return;
+
+            const participants = Array.isArray(activity.participants) ? [...activity.participants] : [];
+            if (participants.some(p => p.memberId === member.id)) {
+                showToast('Esta persona ya está en la actividad.', 'error');
+                return;
+            }
+
+            participants.push({ memberId: member.id, name: member.name || 'Sin nombre' });
+            activity.participants = participants;
+
+            try {
+                await saveActivityParticipants(activity);
+                renderActivityParticipants();
+                renderActivityParticipantSuggestions(document.getElementById('activity-participant-search')?.value || '');
+                renderActivitiesList();
+                showToast('Participante agregado correctamente.', 'success');
+            } catch (error) {
+                console.error('Error al agregar participante:', error);
+                participants.pop();
+                showToast('No se pudo agregar el participante.', 'error');
+            }
+        }
+
+        async function addManualActivityParticipant() {
+            if (!isAdmin()) return;
+            const activity = getActiveParticipantsActivity();
+            const nameInput = document.getElementById('activity-new-participant-name');
+            const birthInput = document.getElementById('activity-new-participant-birthdate');
+            const name = (nameInput?.value || '').trim();
+            const birthDate = birthInput?.value || '';
+
+            if (!activity) return;
+            if (!name) {
+                showToast('Escribe el nombre completo.', 'error');
+                return;
+            }
+            if (!birthDate) {
+                showToast('Registra la fecha de nacimiento para agregar la persona a la Base de Datos.', 'error');
+                return;
+            }
+
+            const duplicate = members.find(m => String(m.name || '').trim().toLowerCase() === name.toLowerCase());
+            if (duplicate) {
+                await addExistingActivityParticipant(duplicate.id);
+                return;
+            }
+
+            const newMember = {
+                id: 'm_' + Date.now(),
+                name,
+                documentType: '', documentNumber: '', birthDate,
+                phone: '', email: '', bloodType: '', eps: '',
+                emergencyName: '', emergencyPhone: '', allergies: 'Ninguna',
+                baptized: false, baptismDate: '', gp: '',
+                club: 'Ninguno', roles: [],
+                gmInvestitureStatus: '', gmWorksClub: '', gmClubRole: '',
+                clubClass: '', presentToday: false,
+                clubRoles: {}
+            };
+
+            try {
+                members.unshift(newMember);
+                await syncMemberToCloud(newMember);
+
+                const participants = Array.isArray(activity.participants) ? [...activity.participants] : [];
+                participants.push({ memberId: newMember.id, name: newMember.name });
+                activity.participants = participants;
+                await saveActivityParticipants(activity);
+
+                if (nameInput) nameInput.value = '';
+                if (birthInput) birthInput.value = '';
+                renderActivityParticipants();
+                renderActivityParticipantSuggestions(document.getElementById('activity-participant-search')?.value || '');
+                renderActivitiesList();
+                refreshAllUI();
+                showToast('Persona agregada a la Base de Datos y a la actividad.', 'success');
+            } catch (error) {
+                console.error('Error al agregar persona manualmente:', error);
+                members = members.filter(m => m.id !== newMember.id);
+                showToast('No se pudo agregar la persona.', 'error');
+            }
+        }
+
+        async function removeActivityParticipant(memberId) {
+            if (!isAdmin()) return;
+            const activity = getActiveParticipantsActivity();
+            if (!activity) return;
+            const participants = Array.isArray(activity.participants) ? activity.participants : [];
+            const participant = participants.find(p => p.memberId === memberId);
+            if (!participant) return;
+            if (!window.confirm(`¿Deseas quitar a ${participant.name || 'esta persona'} de la actividad?`)) return;
+
+            activity.participants = participants.filter(p => p.memberId !== memberId);
+            try {
+                await saveActivityParticipants(activity);
+                renderActivityParticipants();
+                renderActivityParticipantSuggestions(document.getElementById('activity-participant-search')?.value || '');
+                renderActivitiesList();
+                showToast('Participante retirado de la actividad.', 'success');
+            } catch (error) {
+                console.error('Error al quitar participante:', error);
+                activity.participants = participants;
+                showToast('No se pudo retirar el participante.', 'error');
             }
         }
 
@@ -4042,7 +4331,10 @@
                                     <i class="fas fa-trash"></i><span>Eliminar</span>
                                 </button>
                             </div>` : ''}
-                            <div class="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100">
+                            <div class="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-slate-100">
+                                <button type="button" onclick="openActivityParticipants('${escapeActivityHtml(activity.id)}')" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs font-bold transition-colors cursor-pointer">
+                                    <i class="fas fa-users"></i><span>Ver participantes (${Array.isArray(activity.participants) ? activity.participants.length : 0})</span>
+                                </button>
                                 <button type="button" onclick="copyActivityToWhatsApp('${escapeActivityHtml(activity.id)}')" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-green-100 hover:bg-green-200 text-green-700 text-xs font-bold transition-colors cursor-pointer">
                                     <i class="fab fa-whatsapp"></i><span>Copiar para WhatsApp</span>
                                 </button>
@@ -4188,6 +4480,7 @@
                     startTime, endTime: endTime || '', place: place || '',
                     description: description || '', status,
                     specificData: getActivitySpecificData(),
+                    participants: Array.isArray(activities.find(item => item.id === editingActivityId)?.participants) ? activities.find(item => item.id === editingActivityId).participants : [],
                     updatedAt: new Date().toISOString()
                 };
                 const activityRef = doc(db, 'artifacts', appId, 'public', 'data', 'ja_activities', editingActivityId);
@@ -4265,6 +4558,7 @@
                 description: description || '',
                 status,
                 specificData: getActivitySpecificData(),
+                participants: [],
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
             };
@@ -4350,6 +4644,12 @@
             loadActivitiesFromCloud,
             buildWhatsAppActivityText,
             copyActivityToWhatsApp,
+            openActivityParticipants,
+            closeActivityParticipantsModal,
+            searchActivityParticipants,
+            addExistingActivityParticipant,
+            addManualActivityParticipant,
+            removeActivityParticipant,
             addLeadershipPerson,
             updateClubRole,
             saveClubAssignments,
