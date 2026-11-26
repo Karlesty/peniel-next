@@ -976,22 +976,22 @@
                         </div>
 
                         <div>
-                            <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Estado</label>
-                            <select id="activity-status-initial" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm">
-                                <option>Programada</option>
-                                <option>Realizada</option>
-                                <option>Cancelada</option>
-                            </select>
-                        </div>
-
-                        <div>
                             <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Cupo máximo <span class="normal-case font-normal text-slate-400">(opcional)</span></label>
                             <input id="activity-capacity-initial" type="number" min="1" step="1" placeholder="Ej. 30" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm">
                         </div>
 
                         <div>
                             <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Costo de participación <span class="normal-case font-normal text-slate-400">(opcional)</span></label>
-                            <input id="activity-cost-initial" type="number" min="0" step="0.01" placeholder="Ej. 15000" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+                            <input id="activity-cost-initial" type="number" min="0" step="0.01" placeholder="Ej. 10000" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Estado</label>
+                            <select id="activity-status-initial" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+                                <option>Programada</option>
+                                <option>Realizada</option>
+                                <option>Cancelada</option>
+                            </select>
                         </div>
 
                         <div>
@@ -1692,15 +1692,6 @@
                     <p class="text-[10px] font-bold uppercase tracking-wider text-blue-600">Actividad JA</p>
                     <h3 id="activity-participants-title" class="font-extrabold text-slate-900 text-lg truncate">Participantes</h3>
                     <p id="activity-participants-count" class="text-xs text-slate-500 mt-0.5">0 participantes</p>
-                    <div id="activity-participants-capacity-wrap" class="hidden mt-2 w-full max-w-xs">
-                        <div class="flex items-center justify-between mb-1">
-                            <span id="activity-participants-capacity-label" class="text-[10px] font-bold text-slate-500">Cupo</span>
-                            <span id="activity-participants-capacity-status" class="text-[10px] font-bold text-slate-500"></span>
-                        </div>
-                        <div class="h-2 rounded-full bg-slate-100 overflow-hidden">
-                            <div id="activity-participants-capacity-bar" class="h-full rounded-full transition-all" style="width:0%"></div>
-                        </div>
-                    </div>
                 </div>
                 <button type="button" onclick="closeActivityParticipantsModal()" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">
                     <i class="fas fa-times"></i>
@@ -1731,10 +1722,9 @@
                             <input id="activity-new-participant-birthdate" type="date" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm">
                         </div>
                     </div>
-                    <button id="activity-add-manual-participant-btn" type="button" onclick="addManualActivityParticipant()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed">
+                    <button type="button" onclick="addManualActivityParticipant()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold">
                         <i class="fas fa-user-plus"></i><span>Agregar a participantes y Base de Datos</span>
                     </button>
-                    <p id="activity-participants-full-message" class="hidden text-xs font-semibold text-red-600">El cupo máximo ya fue alcanzado. Para agregar otra persona, primero debes quitar un participante.</p>
                 </div>
 
                 <div>
@@ -1755,7 +1745,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, collection, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDocs, onSnapshot, collection, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // ==========================================
         // 1. CONFIGURACIÓN NUBE Y MANIFIESTO PWA
@@ -2141,15 +2131,7 @@
         }
 
         function isAdmin() {
-            // La sesión de Firebase es la fuente principal.
-            // Como respaldo, usamos la sesión persistida para evitar que una
-            // actualización de la interfaz pierda temporalmente el rol admin.
-            if (currentUserRole === 'admin') return true;
-            try {
-                return sessionStorage.getItem('ja_session_role') === 'admin';
-            } catch (error) {
-                return false;
-            }
+            return currentUserRole === 'admin';
         }
 
         // ==========================================
@@ -4104,11 +4086,7 @@
             const content = document.getElementById('activity-details-content');
             if (title) title.textContent = activity.name || 'Detalles de la actividad';
             const rows = [];
-            rows.push(['Tipo', activity.type || 'Sin tipo'], ['Fecha', `${formatActivityDate(activity.startDate)}${activity.endDate ? ' al ' + formatActivityDate(activity.endDate) : ''}`], ['Hora', `${activity.startTime || 'Sin hora'}${activity.endTime ? ' a ' + activity.endTime : ''}`], ['Lugar', activity.place || 'Sin lugar'], ['Estado', getEffectiveActivityStatus(activity)]);
-            const detailCapacity = getActivityCapacity(activity);
-            const detailCost = getActivityCost(activity);
-            if (detailCapacity !== null) rows.push(['Cupo máximo', String(detailCapacity)]);
-            if (detailCost !== null) rows.push(['Costo de participación', detailCost === 0 ? 'Gratis' : '$ ' + detailCost.toLocaleString('es-CO')]);
+            rows.push(['Tipo', activity.type || 'Sin tipo'], ['Fecha', `${formatActivityDate(activity.startDate)}${activity.endDate ? ' al ' + formatActivityDate(activity.endDate) : ''}`], ['Hora', `${activity.startTime || 'Sin hora'}${activity.endTime ? ' a ' + activity.endTime : ''}`], ['Lugar', activity.place || 'Sin lugar'], ['Cupo máximo', activity.maxCapacity ? String(activity.maxCapacity) : 'Sin límite'], ['Costo de participación', activity.participationCost !== null && activity.participationCost !== undefined && activity.participationCost !== '' ? `$${Number(activity.participationCost).toLocaleString('es-CO')}` : 'Sin costo definido'], ['Estado', activity.status || 'Programada']);
             if (activity.description) rows.push(['Descripción / objetivo', activity.description]);
             let html = '<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">';
             rows.forEach(([label,value]) => { html += `<div class="p-3 rounded-xl bg-slate-50 border border-slate-200"><p class="text-[10px] font-bold uppercase text-slate-500">${escapeActivityHtml(label)}</p><p class="text-sm font-semibold text-slate-800 mt-1 whitespace-pre-line">${escapeActivityHtml(value)}</p></div>`; });
@@ -4147,12 +4125,10 @@
                 `📆 Fecha: ${formatActivityDate(activity.startDate)}${activity.endDate ? ` al ${formatActivityDate(activity.endDate)}` : ''}`,
                 `🕐 Hora: ${activity.startTime || 'Sin hora'}${activity.endTime ? ` a ${activity.endTime}` : ''}`,
                 `📍 Lugar: ${activity.place || 'Sin lugar'}`,
-                `🔔 Estado: ${getEffectiveActivityStatus(activity)}`
+                `👥 Cupo: ${activity.maxCapacity ? `${Array.isArray(activity.participants) ? activity.participants.length : 0} / ${activity.maxCapacity}` : 'Sin límite'}`,
+                `💰 Costo: ${activity.participationCost !== null && activity.participationCost !== undefined && activity.participationCost !== '' ? `$${Number(activity.participationCost).toLocaleString('es-CO')}` : 'Sin costo definido'}`,
+                `🔔 Estado: ${activity.status || 'Programada'}`
             ];
-            const capacity = getActivityCapacity(activity);
-            const cost = getActivityCost(activity);
-            if (capacity !== null) lines.push(`👥 Cupo máximo: ${capacity} participantes`);
-            if (cost !== null) lines.push(`💰 Costo: ${cost === 0 ? 'Gratis' : '$ ' + cost.toLocaleString('es-CO')}`);
 
             if (activity.responsible?.name || activity.responsible) lines.push(`👤 Responsable: ${activity.responsible?.name || activity.responsible}`);
             if (Array.isArray(activity.organizers) && activity.organizers.length) lines.push(`👥 Equipo organizador: ${activity.organizers.map(p=>p.name||p).join(', ')}`);
@@ -4262,31 +4238,33 @@
             if (!list) return;
 
             const participants = Array.isArray(activity?.participants) ? activity.participants : [];
-            const capacity = getActivityCapacity(activity);
-            const capacityWrap = document.getElementById('activity-participants-capacity-wrap');
-            const capacityLabel = document.getElementById('activity-participants-capacity-label');
-            const capacityStatus = document.getElementById('activity-participants-capacity-status');
-            const capacityBar = document.getElementById('activity-participants-capacity-bar');
-            const manualButton = document.getElementById('activity-add-manual-participant-btn');
-            const fullMessage = document.getElementById('activity-participants-full-message');
-
-            if (count) count.textContent = `${participants.length}${capacity !== null ? ' / ' + capacity : ''} ${participants.length === 1 ? 'participante' : 'participantes'}`;
-
-            if (capacity !== null) {
-                const percentage = Math.min(100, Math.round((participants.length / capacity) * 100));
-                if (capacityWrap) capacityWrap.classList.remove('hidden');
-                if (capacityLabel) capacityLabel.textContent = `Cupo: ${participants.length} de ${capacity}`;
-                if (capacityStatus) capacityStatus.textContent = participants.length >= capacity ? 'COMPLETO' : `${capacity - participants.length} disponibles`;
-                if (capacityBar) {
-                    capacityBar.style.width = `${percentage}%`;
-                    capacityBar.className = `h-full rounded-full transition-all ${participants.length >= capacity ? 'bg-red-500' : 'bg-blue-500'}`;
+            const capacity = Number(activity?.maxCapacity);
+            const hasCapacity = Number.isFinite(capacity) && capacity > 0;
+            if (count) {
+                count.textContent = hasCapacity
+                    ? `${participants.length} / ${capacity} participantes`
+                    : `${participants.length} ${participants.length === 1 ? 'participante' : 'participantes'}`;
+            }
+            const adminPanel = document.getElementById('activity-participants-admin-panel');
+            const full = hasCapacity && participants.length >= capacity;
+            if (adminPanel) adminPanel.classList.toggle('opacity-60', full);
+            const searchInput = document.getElementById('activity-participant-search');
+            const manualButton = document.querySelector('#activity-participants-admin-panel button[onclick=\"addManualActivityParticipant()\"]');
+            if (searchInput) searchInput.disabled = full;
+            if (manualButton) manualButton.disabled = full;
+            let capacityNotice = document.getElementById('activity-participant-capacity-notice');
+            if (adminPanel) {
+                if (!capacityNotice) {
+                    capacityNotice = document.createElement('div');
+                    capacityNotice.id = 'activity-participant-capacity-notice';
+                    adminPanel.insertBefore(capacityNotice, adminPanel.firstElementChild);
                 }
-                if (manualButton) manualButton.disabled = participants.length >= capacity;
-                if (fullMessage) fullMessage.classList.toggle('hidden', participants.length < capacity);
-            } else {
-                if (capacityWrap) capacityWrap.classList.add('hidden');
-                if (manualButton) manualButton.disabled = false;
-                if (fullMessage) fullMessage.classList.add('hidden');
+                capacityNotice.className = full
+                    ? 'rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700'
+                    : 'rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700';
+                capacityNotice.textContent = hasCapacity
+                    ? (full ? `Cupo completo: ${capacity} / ${capacity}. Retira a un participante para poder agregar otro.` : `Cupos disponibles: ${capacity - participants.length}`)
+                    : 'Sin cupo máximo establecido.';
             }
 
             if (!participants.length) {
@@ -4317,15 +4295,13 @@
             if (!container) return;
 
             const participants = Array.isArray(activity?.participants) ? activity.participants : [];
-            const capacity = getActivityCapacity(activity);
-            const selectedIds = new Set(participants.map(p => p.memberId).filter(Boolean));
-            const normalized = String(query || '').trim().toLowerCase();
-
-            if (capacity !== null && participants.length >= capacity) {
-                container.innerHTML = '<div class="p-3 rounded-xl bg-red-50 border border-red-100 text-xs text-red-700 font-semibold"><i class="fas fa-circle-exclamation mr-1"></i>El cupo máximo ya fue alcanzado.</div>';
+            const capacity = Number(activity?.maxCapacity);
+            if (Number.isFinite(capacity) && capacity > 0 && participants.length >= capacity) {
+                container.innerHTML = '<p class=\"text-xs font-semibold text-amber-600 px-2 py-2\">Cupo completo. No se pueden agregar más participantes.</p>';
                 return;
             }
-
+            const selectedIds = new Set(participants.map(p => p.memberId).filter(Boolean));
+            const normalized = String(query || '').trim().toLowerCase();
             const candidates = members
                 .filter(member => member && member.id && !selectedIds.has(member.id))
                 .filter(member => !normalized || String(member.name || '').toLowerCase().includes(normalized))
@@ -4358,15 +4334,16 @@
         }
 
         async function addExistingActivityParticipant(memberId) {
-            if (!isAdmin()) { showToast('Solo el administrador puede agregar participantes.', 'error'); return; }
+            if (!isAdmin()) return;
             const activity = getActiveParticipantsActivity();
             const member = members.find(item => item.id === memberId);
             if (!activity || !member) return;
 
             const participants = Array.isArray(activity.participants) ? [...activity.participants] : [];
-            const capacity = getActivityCapacity(activity);
-            if (capacity !== null && participants.length >= capacity) {
-                showToast(`El cupo máximo de ${capacity} participantes ya fue alcanzado.`, 'error');
+            const capacity = Number(activity.maxCapacity);
+            if (Number.isFinite(capacity) && capacity > 0 && participants.length >= capacity) {
+                showToast(`El cupo máximo de ${capacity} participantes ya está completo.`, 'error');
+                renderActivityParticipants();
                 return;
             }
             if (participants.some(p => p.memberId === member.id)) {
@@ -4391,7 +4368,7 @@
         }
 
         async function addManualActivityParticipant() {
-            if (!isAdmin()) { showToast('Solo el administrador puede agregar participantes.', 'error'); return; }
+            if (!isAdmin()) return;
             const activity = getActiveParticipantsActivity();
             const nameInput = document.getElementById('activity-new-participant-name');
             const birthInput = document.getElementById('activity-new-participant-birthdate');
@@ -4399,19 +4376,19 @@
             const birthDate = birthInput?.value || '';
 
             if (!activity) return;
+            const currentParticipants = Array.isArray(activity.participants) ? activity.participants : [];
+            const capacity = Number(activity.maxCapacity);
+            if (Number.isFinite(capacity) && capacity > 0 && currentParticipants.length >= capacity) {
+                showToast(`El cupo máximo de ${capacity} participantes ya está completo.`, 'error');
+                renderActivityParticipants();
+                return;
+            }
             if (!name) {
                 showToast('Escribe el nombre completo.', 'error');
                 return;
             }
             if (!birthDate) {
                 showToast('Registra la fecha de nacimiento para agregar la persona a la Base de Datos.', 'error');
-                return;
-            }
-
-            const participants = Array.isArray(activity.participants) ? [...activity.participants] : [];
-            const capacity = getActivityCapacity(activity);
-            if (capacity !== null && participants.length >= capacity) {
-                showToast(`El cupo máximo de ${capacity} participantes ya fue alcanzado.`, 'error');
                 return;
             }
 
@@ -4438,6 +4415,7 @@
                 members.unshift(newMember);
                 await syncMemberToCloud(newMember);
 
+                const participants = Array.isArray(activity.participants) ? [...activity.participants] : [];
                 participants.push({ memberId: newMember.id, name: newMember.name });
                 activity.participants = participants;
                 await saveActivityParticipants(activity);
@@ -4479,28 +4457,6 @@
             }
         }
 
-        function getEffectiveActivityStatus(activity) {
-            const storedStatus = activity?.status || 'Programada';
-            if (storedStatus === 'Cancelada' || storedStatus === 'Realizada') return storedStatus;
-            if (!activity?.startDate || !activity?.startTime) return storedStatus;
-
-            const finalDate = activity.endDate || activity.startDate;
-            const finalTime = activity.endTime || (activity.endDate ? '23:59' : activity.startTime);
-            const endDateTime = new Date(`${finalDate}T${finalTime}:00`);
-            if (!Number.isNaN(endDateTime.getTime()) && new Date() > endDateTime) return 'Realizada';
-            return 'Programada';
-        }
-
-        function getActivityCapacity(activity) {
-            const value = Number(activity?.maxCapacity);
-            return Number.isFinite(value) && value > 0 ? Math.floor(value) : null;
-        }
-
-        function getActivityCost(activity) {
-            const value = Number(activity?.participationCost);
-            return Number.isFinite(value) && value >= 0 ? value : null;
-        }
-
         function getFilteredActivities() {
             const search = (document.getElementById('activities-search')?.value || '').trim().toLowerCase();
             const date = document.getElementById('activities-date-filter')?.value || '';
@@ -4513,7 +4469,7 @@
                 const matchesDate = !date || activity.startDate === date || activity.endDate === date ||
                     (activity.startDate && activity.endDate && activity.startDate < date && activity.endDate > date);
                 const matchesType = !type || activity.type === type;
-                const matchesStatus = !status || getEffectiveActivityStatus(activity) === status;
+                const matchesStatus = !status || (activity.status || 'Programada') === status;
                 return matchesSearch && matchesDate && matchesType && matchesStatus;
             });
         }
@@ -4563,7 +4519,7 @@
                                     ${escapeActivityHtml(activity.type || 'Sin tipo')}
                                 </span>
                                 <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-slate-100 text-slate-600">
-                                    ${escapeActivityHtml(getEffectiveActivityStatus(activity))}
+                                    ${escapeActivityHtml(activity.status || 'Programada')}
                                 </span>
                             </div>
                             <h3 class="font-bold text-slate-900 text-sm">${escapeActivityHtml(activity.name || 'Sin nombre')}</h3>
@@ -4576,7 +4532,6 @@
                                 <span><i class="far fa-calendar mr-1"></i>${escapeActivityHtml(formatActivityDate(activity.startDate))}</span>
                                 <span><i class="far fa-clock mr-1"></i>${escapeActivityHtml(activity.startTime || 'Sin hora')}</span>
                                 <span><i class="fas fa-location-dot mr-1"></i>${escapeActivityHtml(activity.place || 'Sin lugar')}</span>
-                                ${getActivityCapacity(activity) !== null ? `<span><i class="fas fa-users mr-1"></i>${Array.isArray(activity.participants) ? activity.participants.length : 0}/${getActivityCapacity(activity)}</span>` : ''}
                             </div>
                             ${isAdmin() ? `
                             <div class="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100">
@@ -4659,7 +4614,7 @@
             }
             ['activity-name-initial','activity-start-date-initial','activity-end-date-initial',
              'activity-start-time-initial','activity-end-time-initial','activity-place-initial',
-             'activity-description-initial','activity-capacity-initial','activity-cost-initial'].forEach(id => {
+             'activity-capacity-initial','activity-cost-initial','activity-description-initial'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
             });
@@ -4756,7 +4711,7 @@
             }
         }
 
-        async function addActivityOrganizerToMembers(){if(!isAdmin()){showToast('Solo el administrador puede agregar personas a Miembros.','error');return;}const ni=document.getElementById('activity-new-organizer-name'),bi=document.getElementById('activity-new-organizer-birthdate'),name=(ni?.value||'').trim(),birthDate=bi?.value||'';if(!name){showToast('Escribe el nombre completo.','error');return;}const ex=members.find(m=>String(m.name||'').trim().toLowerCase()===name.toLowerCase());if(ex){const r=document.getElementById('activity-responsible-initial'),o=document.getElementById('activity-organizers-initial');if(r&&!r.value.trim())r.value=ex.name;else if(o)o.value=o.value.trim()?o.value.trim()+', '+ex.name:ex.name;showToast('La persona ya existe en Miembros y fue seleccionada.','info');return;}if(!birthDate){showToast('Registra la fecha de nacimiento para agregar la persona.','error');return;}const m={id:'m_'+Date.now(),name,documentType:'',documentNumber:'',birthDate,phone:'',email:'',bloodType:'',eps:'',emergencyName:'',emergencyPhone:'',allergies:'Ninguna',baptized:false,baptismDate:'',gp:'',club:'Ninguno',roles:[],gmInvestitureStatus:'',gmWorksClub:'',gmClubRole:'',clubClass:'',presentToday:false,clubRoles:{}};try{members.unshift(m);await syncMemberToCloud(m);refreshActivityMembersDatalist();const r=document.getElementById('activity-responsible-initial'),o=document.getElementById('activity-organizers-initial');if(r&&!r.value.trim())r.value=name;else if(o)o.value=o.value.trim()?o.value.trim()+', '+name:name;ni.value='';bi.value='';refreshAllUI();showToast('Persona agregada a Miembros.','success')}catch(e){members=members.filter(x=>x.id!==m.id);console.error(e);showToast('No se pudo agregar la persona.','error')}}
+        async function addActivityOrganizerToMembers(){if(!isAdmin())return;const ni=document.getElementById('activity-new-organizer-name'),bi=document.getElementById('activity-new-organizer-birthdate'),name=(ni?.value||'').trim(),birthDate=bi?.value||'';if(!name){showToast('Escribe el nombre completo.','error');return;}const ex=members.find(m=>String(m.name||'').trim().toLowerCase()===name.toLowerCase());if(ex){const r=document.getElementById('activity-responsible-initial'),o=document.getElementById('activity-organizers-initial');if(r&&!r.value.trim())r.value=ex.name;else if(o)o.value=o.value.trim()?o.value.trim()+', '+ex.name:ex.name;showToast('La persona ya existe en Miembros y fue seleccionada.','info');return;}if(!birthDate){showToast('Registra la fecha de nacimiento para agregar la persona.','error');return;}const m={id:'m_'+Date.now(),name,documentType:'',documentNumber:'',birthDate,phone:'',email:'',bloodType:'',eps:'',emergencyName:'',emergencyPhone:'',allergies:'Ninguna',baptized:false,baptismDate:'',gp:'',club:'Ninguno',roles:[],gmInvestitureStatus:'',gmWorksClub:'',gmClubRole:'',clubClass:'',presentToday:false,clubRoles:{}};try{members.unshift(m);await syncMemberToCloud(m);refreshActivityMembersDatalist();const r=document.getElementById('activity-responsible-initial'),o=document.getElementById('activity-organizers-initial');if(r&&!r.value.trim())r.value=name;else if(o)o.value=o.value.trim()?o.value.trim()+', '+name:name;ni.value='';bi.value='';refreshAllUI();showToast('Persona agregada a Miembros.','success')}catch(e){members=members.filter(x=>x.id!==m.id);console.error(e);showToast('No se pudo agregar la persona.','error')}}
 
         function editActivity(activityId) {
             if (!isAdmin()) {
@@ -4776,9 +4731,9 @@
             document.getElementById('activity-start-time-initial').value = activity.startTime || '';
             document.getElementById('activity-end-time-initial').value = activity.endTime || '';
             document.getElementById('activity-place-initial').value = activity.place || '';
-            document.getElementById('activity-status-initial').value = activity.status || 'Programada';
             document.getElementById('activity-capacity-initial').value = activity.maxCapacity ?? '';
             document.getElementById('activity-cost-initial').value = activity.participationCost ?? '';
+            document.getElementById('activity-status-initial').value = activity.status || 'Programada';
             document.getElementById('activity-description-initial').value = activity.description || '';
             document.getElementById('activity-responsible-initial').value = activity.responsible?.name || activity.responsible || '';
             document.getElementById('activity-organizers-initial').value = Array.isArray(activity.organizers) ? activity.organizers.map(p=>p.name||p).join(', ') : (activity.organizers||'');
@@ -4813,6 +4768,10 @@
             const responsibleName = document.getElementById('activity-responsible-initial')?.value.trim();
             const organizerNames = document.getElementById('activity-organizers-initial')?.value.split(',').map(v=>v.trim()).filter(Boolean) || [];
             const status = document.getElementById('activity-status-initial')?.value || 'Programada';
+            const capacityValue = document.getElementById('activity-capacity-initial')?.value ?? '';
+            const costValue = document.getElementById('activity-cost-initial')?.value ?? '';
+            const maxCapacity = capacityValue === '' ? null : Math.max(1, Math.floor(Number(capacityValue)));
+            const participationCost = costValue === '' ? null : Math.max(0, Number(costValue));
 
             if (!type || !name || !startDate || !startTime) {
                 showToast('Completa Tipo, Nombre, Fecha de inicio y Hora de inicio.', 'error');
@@ -4830,8 +4789,8 @@
                     type, name, startDate, endDate: endDate || '',
                     startTime, endTime: endTime || '', place: place || '',
                     description: description || '', status,
-                    maxCapacity: (() => { const v = Number(document.getElementById('activity-capacity-initial')?.value); return Number.isFinite(v) && v > 0 ? Math.floor(v) : null; })(),
-                    participationCost: (() => { const v = Number(document.getElementById('activity-cost-initial')?.value); return Number.isFinite(v) && v >= 0 && document.getElementById('activity-cost-initial')?.value !== '' ? v : null; })(),
+                    maxCapacity,
+                    participationCost,
                     specificData: getActivitySpecificData(),
                     responsible: responsibleName ? {memberId: members.find(m=>String(m.name||'').trim().toLowerCase()===responsibleName.toLowerCase())?.id||'',name:responsibleName}:null,
                     organizers: organizerNames.map(name=>({memberId:members.find(m=>String(m.name||'').trim().toLowerCase()===name.toLowerCase())?.id||'',name})),
@@ -4898,6 +4857,10 @@
             const responsibleName = document.getElementById('activity-responsible-initial')?.value.trim();
             const organizerNames = document.getElementById('activity-organizers-initial')?.value.split(',').map(v=>v.trim()).filter(Boolean) || [];
             const status = document.getElementById('activity-status-initial')?.value || 'Programada';
+            const capacityValue = document.getElementById('activity-capacity-initial')?.value ?? '';
+            const costValue = document.getElementById('activity-cost-initial')?.value ?? '';
+            const maxCapacity = capacityValue === '' ? null : Math.max(1, Math.floor(Number(capacityValue)));
+            const participationCost = costValue === '' ? null : Math.max(0, Number(costValue));
 
             if (!type || !name || !startDate || !startTime) {
                 showToast('Completa Tipo, Nombre, Fecha de inicio y Hora de inicio.', 'error');
@@ -4914,8 +4877,8 @@
                 place: place || '',
                 description: description || '',
                 status,
-                maxCapacity: (() => { const v = Number(document.getElementById('activity-capacity-initial')?.value); return Number.isFinite(v) && v > 0 ? Math.floor(v) : null; })(),
-                participationCost: (() => { const v = Number(document.getElementById('activity-cost-initial')?.value); return Number.isFinite(v) && v >= 0 && document.getElementById('activity-cost-initial')?.value !== '' ? v : null; })(),
+                maxCapacity,
+                participationCost,
                 specificData: getActivitySpecificData(),
                 responsible: responsibleName ? {memberId: members.find(m=>String(m.name||'').trim().toLowerCase()===responsibleName.toLowerCase())?.id||'',name:responsibleName}:null,
                 organizers: organizerNames.map(name=>({memberId:members.find(m=>String(m.name||'').trim().toLowerCase()===name.toLowerCase())?.id||'',name})),
@@ -5026,10 +4989,7 @@
             clearClubAssignments,
             openResetModal,
             closeConfirmModal
-        
-            getEffectiveActivityStatus,
-            getActivityCapacity,
-            getActivityCost,});
+        });
 
         // Advertencia nativa del navegador al recargar, cerrar o abandonar la página.
         window.addEventListener('beforeunload', handleBeforeUnloadUnsavedClubChanges);
