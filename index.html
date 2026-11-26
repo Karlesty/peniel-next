@@ -824,12 +824,16 @@
             <!-- VISTA: HISTORIAL GENERAL DE ASISTENCIA      -->
             <!-- ========================================== -->
             <section id="view-attendance-history" class="view-section hidden space-y-6 fade-in">
-                <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80">
+                <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80 print:hidden">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                             <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full">Seguimiento de asistencia</span>
                             <h1 class="text-2xl font-extrabold text-slate-900 mt-2">Historial general de asistencia</h1>
                             <p class="text-slate-500 text-sm mt-1">Consulta la asistencia acumulada de los participantes en las Actividades JA.</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" onclick="printAttendanceHistoryReport()" class="inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold cursor-pointer"><i class="fas fa-print"></i> Imprimir / PDF</button>
+                            <button type="button" onclick="exportAttendanceHistoryToExcel()" class="inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold cursor-pointer"><i class="fas fa-file-excel"></i> Excel</button>
                         </div>
                     </div>
                 </div>
@@ -909,6 +913,9 @@
                         </div>
                         <button type="button" onclick="printIndividualAttendanceReport()" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold cursor-pointer">
                             <i class="fas fa-print"></i><span>Imprimir / PDF</span>
+                        </button>
+                        <button type="button" onclick="exportIndividualAttendanceToExcel()" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold cursor-pointer">
+                            <i class="fas fa-file-excel"></i><span>Excel</span>
                         </button>
                     </div>
                 </div>
@@ -1543,6 +1550,9 @@
                         </div>
                         <button type="button" onclick="printGeneralAttendanceReport()" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold cursor-pointer">
                             <i class="fas fa-print"></i><span>Imprimir / PDF</span>
+                        </button>
+                        <button type="button" onclick="exportGeneralAttendanceToExcel()" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold cursor-pointer">
+                            <i class="fas fa-file-excel"></i><span>Excel</span>
                         </button>
                     </div>
                 </div>
@@ -5505,6 +5515,67 @@
         }
 
         // ==========================================
+        // 23. EXPORTACIÓN DE REPORTES DE ASISTENCIA
+        // ==========================================
+        function csvCell(value) {
+            const text = String(value ?? '').replace(/"/g, '""');
+            return `"${text}"`;
+        }
+
+        function downloadCsv(filename, headers, rows) {
+            const csv = '\uFEFF' + [headers, ...rows].map(row => row.map(csvCell).join(',')).join('\r\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
+
+        function printAttendanceHistoryReport() {
+            renderAttendanceHistory();
+            window.print();
+        }
+
+        function exportAttendanceHistoryToExcel() {
+            const rows = getFilteredAttendanceHistoryRows();
+            if (!rows.length) { showToast('No hay registros para exportar con los filtros actuales.', 'error'); return; }
+            downloadCsv(`historial_asistencia_${new Date().toISOString().slice(0,10)}.csv`,
+                ['Participante','Actividad','Fecha','Tipo','Estado','% asistencia'],
+                rows.map(row => {
+                    const all = buildAttendanceHistoryRows().filter(r => (r.memberId ? `member:${r.memberId}` : `name:${r.participantName.trim().toLowerCase()}`) === (row.memberId ? `member:${row.memberId}` : `name:${row.participantName.trim().toLowerCase()}`));
+                    const pct = all.length ? Math.round((all.filter(r => r.status === 'Presente').length / all.length) * 100) : 0;
+                    return [row.participantName,row.activityName,row.date,row.activityType,row.status,`${pct}%`];
+                })
+            );
+        }
+
+        function exportIndividualAttendanceToExcel() {
+            const rows = getIndividualAttendanceRows();
+            if (!rows.length) { showToast('Seleccione un participante con registros antes de exportar.', 'error'); return; }
+            const name = rows[0].participantName;
+            const total = rows.length;
+            const present = rows.filter(r => r.status === 'Presente').length;
+            const percentage = total ? Math.round((present / total) * 100) : 0;
+            downloadCsv(`reporte_individual_${name.replace(/[^a-z0-9áéíóúüñ ]/gi,'').trim().replace(/\s+/g,'_') || 'participante'}.csv`,
+                ['Participante','Fecha','Actividad','Tipo','Estado','% asistencia'],
+                rows.map(row => [row.participantName,row.date,row.activityName,row.activityType,row.status,`${percentage}%`])
+            );
+        }
+
+        function exportGeneralAttendanceToExcel() {
+            const rows = buildGeneralAttendanceRows().sort((a,b) => `${b.date}`.localeCompare(`${a.date}`));
+            if (!rows.length) { showToast('No hay actividades con asistencia para exportar con los filtros actuales.', 'error'); return; }
+            downloadCsv(`reporte_general_asistencia_${new Date().toISOString().slice(0,10)}.csv`,
+                ['Fecha','Actividad','Tipo','Participantes','Presentes','No asistieron','Justificados','Pendientes','% asistencia'],
+                rows.map(row => [row.date,row.name,row.type,row.total,row.present,row.absent,row.justified,row.pending,`${row.percentage}%`])
+            );
+        }
+
+        // ==========================================
         // 20. REPORTE INDIVIDUAL DE ASISTENCIA
         // ==========================================
         function populateIndividualAttendanceParticipants(selectedKey = '') {
@@ -5748,6 +5819,10 @@
             openIndividualAttendanceReport,
             clearIndividualAttendanceReport,
             printIndividualAttendanceReport,
+            printAttendanceHistoryReport,
+            exportAttendanceHistoryToExcel,
+            exportIndividualAttendanceToExcel,
+            exportGeneralAttendanceToExcel,
             renderGeneralAttendanceReport,
             clearGeneralAttendanceReportFilters,
             printGeneralAttendanceReport,
