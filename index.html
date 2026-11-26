@@ -2025,9 +2025,9 @@
             errorEl.classList.add('hidden');
 
             try {
-                if (!cloudReady || !auth) {
-                    if (firebaseInitPromise) await firebaseInitPromise;
-                }
+                // Esperar siempre a que Firebase termine de inicializarse para evitar
+                // una carrera entre la carga inicial y el inicio de sesión.
+                if (firebaseInitPromise) await firebaseInitPromise;
                 if (!cloudReady || !auth) throw new Error('Firebase no pudo inicializarse.');
                 if (auth.currentUser) await signOut(auth);
 
@@ -2044,6 +2044,8 @@
                 sessionStorage.setItem('ja_session_role', 'viewer');
                 document.getElementById('viewer-password-input').value = '';
                 applyRolePermissionsUI();
+                // Cargar las actividades después de autenticar al usuario de consulta.
+                await loadActivitiesFromCloud();
                 if (savedSchedules.length > 0) {
                     currentDraftSchedule = JSON.parse(JSON.stringify(savedSchedules[0]));
                     renderDraftSchedule();
@@ -2075,9 +2077,9 @@
             errorEl.classList.add('hidden');
 
             try {
-                if (!cloudReady || !auth) {
-                    if (firebaseInitPromise) await firebaseInitPromise;
-                }
+                // Esperar siempre a que Firebase termine de inicializarse para evitar
+                // una carrera entre la carga inicial y el inicio de sesión.
+                if (firebaseInitPromise) await firebaseInitPromise;
                 if (!cloudReady || !auth) throw new Error('Firebase no pudo inicializarse.');
                 if (auth.currentUser && auth.currentUser.isAnonymous) {
                     await signOut(auth);
@@ -2095,6 +2097,8 @@
                 sessionStorage.setItem('ja_session_role', 'admin');
                 document.getElementById('admin-password-input').value = '';
                 applyRolePermissionsUI();
+                // Cargar las actividades después de autenticar al administrador.
+                await loadActivitiesFromCloud();
                 showToast('Acceso concedido como Administrador.', 'success');
             } catch (err) {
                 console.error(err);
@@ -4363,7 +4367,8 @@
         setDefaultScheduleDate();
         applyRolePermissionsUI();
         firebaseInitPromise = initCloudSync();
-        firebaseInitPromise.then(() => loadActivitiesFromCloud()).catch(() => {});
+        // No intentar leer Firestore antes de que exista una sesión autenticada.
+        firebaseInitPromise.catch(() => {});
     </script>
 </body>
 </html>
