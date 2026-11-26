@@ -4036,6 +4036,47 @@
                 .replace(/^./, c => c.toUpperCase());
         }
 
+        let activeDetailsActivityId = null;
+
+        function viewActivityDetails(activityId) {
+            const activity = activities.find(item => item.id === activityId);
+            if (!activity) { showToast('No se encontró la actividad.', 'error'); return; }
+            activeDetailsActivityId = activityId;
+            const modal = document.getElementById('activity-details-modal');
+            const title = document.getElementById('activity-details-title');
+            const content = document.getElementById('activity-details-content');
+            if (title) title.textContent = activity.name || 'Detalles de la actividad';
+            const rows = [];
+            rows.push(['Tipo', activity.type || 'Sin tipo'], ['Fecha', `${formatActivityDate(activity.startDate)}${activity.endDate ? ' al ' + formatActivityDate(activity.endDate) : ''}`], ['Hora', `${activity.startTime || 'Sin hora'}${activity.endTime ? ' a ' + activity.endTime : ''}`], ['Lugar', activity.place || 'Sin lugar'], ['Estado', activity.status || 'Programada']);
+            if (activity.description) rows.push(['Descripción / objetivo', activity.description]);
+            let html = '<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">';
+            rows.forEach(([label,value]) => { html += `<div class="p-3 rounded-xl bg-slate-50 border border-slate-200"><p class="text-[10px] font-bold uppercase text-slate-500">${escapeActivityHtml(label)}</p><p class="text-sm font-semibold text-slate-800 mt-1 whitespace-pre-line">${escapeActivityHtml(value)}</p></div>`; });
+            html += '</div>';
+            const specific = activity.specificData || {};
+            const entries = Object.entries(specific).filter(([,v]) => v !== undefined && v !== null && String(v).trim() !== '');
+            if (entries.length) {
+                html += '<div class="pt-3 border-t border-slate-200"><h3 class="font-bold text-slate-900 mb-3">Información específica</h3><div class="space-y-3">';
+                entries.forEach(([key,value]) => { html += `<div><p class="text-[10px] font-bold uppercase text-slate-500">${escapeActivityHtml(getActivitySpecificLabel(key))}</p><p class="text-sm text-slate-700 whitespace-pre-line mt-1">${escapeActivityHtml(value)}</p></div>`; });
+                html += '</div></div>';
+            }
+            const participants = Array.isArray(activity.participants) ? activity.participants : [];
+            html += `<div class="pt-3 border-t border-slate-200"><h3 class="font-bold text-slate-900 mb-2">Participantes (${participants.length})</h3>`;
+            html += participants.length ? '<ol class="space-y-1 text-sm text-slate-700">' + participants.map(p => `<li>${escapeActivityHtml(p.name || 'Sin nombre')}</li>`).join('') + '</ol>' : '<p class="text-sm text-slate-500">No hay participantes registrados.</p>';
+            html += '</div>';
+            if (content) content.innerHTML = html;
+            if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+        }
+
+        function closeActivityDetails() {
+            const modal = document.getElementById('activity-details-modal');
+            if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+            activeDetailsActivityId = null;
+        }
+
+        function copyDetailsActivityToWhatsApp() {
+            if (activeDetailsActivityId) copyActivityToWhatsApp(activeDetailsActivityId);
+        }
+
         function buildWhatsAppActivityText(activity) {
             const lines = [
                 '📅 ACTIVIDAD JA',
@@ -4394,6 +4435,11 @@
                                 </span>
                             </div>
                             <h3 class="font-bold text-slate-900 text-sm">${escapeActivityHtml(activity.name || 'Sin nombre')}</h3>
+                            <div class="flex flex-wrap items-center gap-2 mt-3">
+                                <button type="button" onclick="viewActivityDetails('${escapeActivityHtml(activity.id)}')" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-800 text-xs font-bold transition-colors cursor-pointer">
+                                    <i class="fas fa-eye"></i><span>Ver detalles</span>
+                                </button>
+                            </div>
                             <div class="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-slate-500">
                                 <span><i class="far fa-calendar mr-1"></i>${escapeActivityHtml(formatActivityDate(activity.startDate))}</span>
                                 <span><i class="far fa-clock mr-1"></i>${escapeActivityHtml(activity.startTime || 'Sin hora')}</span>
@@ -4723,6 +4769,9 @@
             loadActivitiesFromCloud,
             buildWhatsAppActivityText,
             copyActivityToWhatsApp,
+            viewActivityDetails,
+            closeActivityDetails,
+            copyDetailsActivityToWhatsApp,
             openActivityParticipants,
             closeActivityParticipantsModal,
             searchActivityParticipants,
@@ -4749,5 +4798,20 @@
         // No intentar leer Firestore antes de que exista una sesión autenticada.
         firebaseInitPromise.catch(() => {});
     </script>
+
+<!-- Modal de detalles de actividad -->
+<div id="activity-details-modal" class="fixed inset-0 z-[70] hidden items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4">
+  <div class="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl">
+    <div class="sticky top-0 bg-white border-b border-slate-200 p-5 flex items-center justify-between gap-3">
+      <div><p class="text-[10px] font-bold uppercase tracking-wider text-blue-600">Actividad JA</p><h2 id="activity-details-title" class="text-xl font-extrabold text-slate-900">Detalles</h2></div>
+      <button type="button" onclick="closeActivityDetails()" class="w-9 h-9 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="activity-details-content" class="p-5 space-y-4"></div>
+    <div class="border-t border-slate-200 p-4 flex flex-wrap justify-end gap-2">
+      <button type="button" onclick="copyDetailsActivityToWhatsApp()" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-green-100 hover:bg-green-200 text-green-700 text-xs font-bold"><i class="fab fa-whatsapp"></i> Copiar para WhatsApp</button>
+      <button type="button" onclick="closeActivityDetails()" class="px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold">Cerrar</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
