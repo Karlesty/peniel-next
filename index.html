@@ -985,6 +985,16 @@
                         </div>
 
                         <div>
+                            <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Cupo máximo <span class="normal-case font-normal text-slate-400">(opcional)</span></label>
+                            <input id="activity-capacity-initial" type="number" min="1" step="1" placeholder="Ej. 30" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Costo de participación <span class="normal-case font-normal text-slate-400">(opcional)</span></label>
+                            <input id="activity-cost-initial" type="number" min="0" step="0.01" placeholder="Ej. 15000" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+                        </div>
+
+                        <div>
                             <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Responsable principal <span class="normal-case font-normal text-slate-400">(opcional)</span></label>
                             <div class="relative">
                             <input id="activity-responsible-initial" autocomplete="off" type="text" placeholder="Buscar o escribir una persona" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm">
@@ -2121,7 +2131,15 @@
         }
 
         function isAdmin() {
-            return currentUserRole === 'admin';
+            // La sesión de Firebase es la fuente principal.
+            // Como respaldo, usamos la sesión persistida para evitar que una
+            // actualización de la interfaz pierda temporalmente el rol admin.
+            if (currentUserRole === 'admin') return true;
+            try {
+                return sessionStorage.getItem('ja_session_role') === 'admin';
+            } catch (error) {
+                return false;
+            }
         }
 
         // ==========================================
@@ -4076,7 +4094,11 @@
             const content = document.getElementById('activity-details-content');
             if (title) title.textContent = activity.name || 'Detalles de la actividad';
             const rows = [];
-            rows.push(['Tipo', activity.type || 'Sin tipo'], ['Fecha', `${formatActivityDate(activity.startDate)}${activity.endDate ? ' al ' + formatActivityDate(activity.endDate) : ''}`], ['Hora', `${activity.startTime || 'Sin hora'}${activity.endTime ? ' a ' + activity.endTime : ''}`], ['Lugar', activity.place || 'Sin lugar'], ['Estado', activity.status || 'Programada']);
+            rows.push(['Tipo', activity.type || 'Sin tipo'], ['Fecha', `${formatActivityDate(activity.startDate)}${activity.endDate ? ' al ' + formatActivityDate(activity.endDate) : ''}`], ['Hora', `${activity.startTime || 'Sin hora'}${activity.endTime ? ' a ' + activity.endTime : ''}`], ['Lugar', activity.place || 'Sin lugar'], ['Estado', getEffectiveActivityStatus(activity)]);
+            const detailCapacity = getActivityCapacity(activity);
+            const detailCost = getActivityCost(activity);
+            if (detailCapacity !== null) rows.push(['Cupo máximo', String(detailCapacity)]);
+            if (detailCost !== null) rows.push(['Costo de participación', detailCost === 0 ? 'Gratis' : '$ ' + detailCost.toLocaleString('es-CO')]);
             if (activity.description) rows.push(['Descripción / objetivo', activity.description]);
             let html = '<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">';
             rows.forEach(([label,value]) => { html += `<div class="p-3 rounded-xl bg-slate-50 border border-slate-200"><p class="text-[10px] font-bold uppercase text-slate-500">${escapeActivityHtml(label)}</p><p class="text-sm font-semibold text-slate-800 mt-1 whitespace-pre-line">${escapeActivityHtml(value)}</p></div>`; });
@@ -4115,8 +4137,12 @@
                 `📆 Fecha: ${formatActivityDate(activity.startDate)}${activity.endDate ? ` al ${formatActivityDate(activity.endDate)}` : ''}`,
                 `🕐 Hora: ${activity.startTime || 'Sin hora'}${activity.endTime ? ` a ${activity.endTime}` : ''}`,
                 `📍 Lugar: ${activity.place || 'Sin lugar'}`,
-                `🔔 Estado: ${activity.status || 'Programada'}`
+                `🔔 Estado: ${getEffectiveActivityStatus(activity)}`
             ];
+            const capacity = getActivityCapacity(activity);
+            const cost = getActivityCost(activity);
+            if (capacity !== null) lines.push(`👥 Cupo máximo: ${capacity} participantes`);
+            if (cost !== null) lines.push(`💰 Costo: ${cost === 0 ? 'Gratis' : '$ ' + cost.toLocaleString('es-CO')}`);
 
             if (activity.responsible?.name || activity.responsible) lines.push(`👤 Responsable: ${activity.responsible?.name || activity.responsible}`);
             if (Array.isArray(activity.organizers) && activity.organizers.length) lines.push(`👥 Equipo organizador: ${activity.organizers.map(p=>p.name||p).join(', ')}`);
@@ -4226,7 +4252,7 @@
             if (!list) return;
 
             const participants = Array.isArray(activity?.participants) ? activity.participants : [];
-            if (count) count.textContent = `${participants.length} ${participants.length === 1 ? 'participante' : 'participantes'}`;
+            if (count) count.textContent = `${participants.length}${getActivityCapacity(activity) !== null ? ' / ' + getActivityCapacity(activity) : ''} ${participants.length === 1 ? 'participante' : 'participantes'}`;
 
             if (!participants.length) {
                 list.innerHTML = `
@@ -4290,12 +4316,17 @@
         }
 
         async function addExistingActivityParticipant(memberId) {
-            if (!isAdmin()) return;
+            if (!isAdmin()) { showToast('Solo el administrador puede agregar participantes.', 'error'); return; }
             const activity = getActiveParticipantsActivity();
             const member = members.find(item => item.id === memberId);
             if (!activity || !member) return;
 
             const participants = Array.isArray(activity.participants) ? [...activity.participants] : [];
+            const capacity = getActivityCapacity(activity);
+            if (capacity !== null && participants.length >= capacity) {
+                showToast(`El cupo máximo de ${capacity} participantes ya fue alcanzado.`, 'error');
+                return;
+            }
             if (participants.some(p => p.memberId === member.id)) {
                 showToast('Esta persona ya está en la actividad.', 'error');
                 return;
@@ -4318,7 +4349,7 @@
         }
 
         async function addManualActivityParticipant() {
-            if (!isAdmin()) return;
+            if (!isAdmin()) { showToast('Solo el administrador puede agregar participantes.', 'error'); return; }
             const activity = getActiveParticipantsActivity();
             const nameInput = document.getElementById('activity-new-participant-name');
             const birthInput = document.getElementById('activity-new-participant-birthdate');
@@ -4332,6 +4363,13 @@
             }
             if (!birthDate) {
                 showToast('Registra la fecha de nacimiento para agregar la persona a la Base de Datos.', 'error');
+                return;
+            }
+
+            const participants = Array.isArray(activity.participants) ? [...activity.participants] : [];
+            const capacity = getActivityCapacity(activity);
+            if (capacity !== null && participants.length >= capacity) {
+                showToast(`El cupo máximo de ${capacity} participantes ya fue alcanzado.`, 'error');
                 return;
             }
 
@@ -4358,7 +4396,6 @@
                 members.unshift(newMember);
                 await syncMemberToCloud(newMember);
 
-                const participants = Array.isArray(activity.participants) ? [...activity.participants] : [];
                 participants.push({ memberId: newMember.id, name: newMember.name });
                 activity.participants = participants;
                 await saveActivityParticipants(activity);
@@ -4400,6 +4437,28 @@
             }
         }
 
+        function getEffectiveActivityStatus(activity) {
+            const storedStatus = activity?.status || 'Programada';
+            if (storedStatus === 'Cancelada' || storedStatus === 'Realizada') return storedStatus;
+            if (!activity?.startDate || !activity?.startTime) return storedStatus;
+
+            const finalDate = activity.endDate || activity.startDate;
+            const finalTime = activity.endTime || (activity.endDate ? '23:59' : activity.startTime);
+            const endDateTime = new Date(`${finalDate}T${finalTime}:00`);
+            if (!Number.isNaN(endDateTime.getTime()) && new Date() > endDateTime) return 'Realizada';
+            return 'Programada';
+        }
+
+        function getActivityCapacity(activity) {
+            const value = Number(activity?.maxCapacity);
+            return Number.isFinite(value) && value > 0 ? Math.floor(value) : null;
+        }
+
+        function getActivityCost(activity) {
+            const value = Number(activity?.participationCost);
+            return Number.isFinite(value) && value >= 0 ? value : null;
+        }
+
         function getFilteredActivities() {
             const search = (document.getElementById('activities-search')?.value || '').trim().toLowerCase();
             const date = document.getElementById('activities-date-filter')?.value || '';
@@ -4412,7 +4471,7 @@
                 const matchesDate = !date || activity.startDate === date || activity.endDate === date ||
                     (activity.startDate && activity.endDate && activity.startDate < date && activity.endDate > date);
                 const matchesType = !type || activity.type === type;
-                const matchesStatus = !status || (activity.status || 'Programada') === status;
+                const matchesStatus = !status || getEffectiveActivityStatus(activity) === status;
                 return matchesSearch && matchesDate && matchesType && matchesStatus;
             });
         }
@@ -4462,7 +4521,7 @@
                                     ${escapeActivityHtml(activity.type || 'Sin tipo')}
                                 </span>
                                 <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-slate-100 text-slate-600">
-                                    ${escapeActivityHtml(activity.status || 'Programada')}
+                                    ${escapeActivityHtml(getEffectiveActivityStatus(activity))}
                                 </span>
                             </div>
                             <h3 class="font-bold text-slate-900 text-sm">${escapeActivityHtml(activity.name || 'Sin nombre')}</h3>
@@ -4475,6 +4534,7 @@
                                 <span><i class="far fa-calendar mr-1"></i>${escapeActivityHtml(formatActivityDate(activity.startDate))}</span>
                                 <span><i class="far fa-clock mr-1"></i>${escapeActivityHtml(activity.startTime || 'Sin hora')}</span>
                                 <span><i class="fas fa-location-dot mr-1"></i>${escapeActivityHtml(activity.place || 'Sin lugar')}</span>
+                                ${getActivityCapacity(activity) !== null ? `<span><i class="fas fa-users mr-1"></i>${Array.isArray(activity.participants) ? activity.participants.length : 0}/${getActivityCapacity(activity)}</span>` : ''}
                             </div>
                             ${isAdmin() ? `
                             <div class="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100">
@@ -4557,7 +4617,7 @@
             }
             ['activity-name-initial','activity-start-date-initial','activity-end-date-initial',
              'activity-start-time-initial','activity-end-time-initial','activity-place-initial',
-             'activity-description-initial'].forEach(id => {
+             'activity-description-initial','activity-capacity-initial','activity-cost-initial'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
             });
@@ -4654,7 +4714,7 @@
             }
         }
 
-        async function addActivityOrganizerToMembers(){if(!isAdmin())return;const ni=document.getElementById('activity-new-organizer-name'),bi=document.getElementById('activity-new-organizer-birthdate'),name=(ni?.value||'').trim(),birthDate=bi?.value||'';if(!name){showToast('Escribe el nombre completo.','error');return;}const ex=members.find(m=>String(m.name||'').trim().toLowerCase()===name.toLowerCase());if(ex){const r=document.getElementById('activity-responsible-initial'),o=document.getElementById('activity-organizers-initial');if(r&&!r.value.trim())r.value=ex.name;else if(o)o.value=o.value.trim()?o.value.trim()+', '+ex.name:ex.name;showToast('La persona ya existe en Miembros y fue seleccionada.','info');return;}if(!birthDate){showToast('Registra la fecha de nacimiento para agregar la persona.','error');return;}const m={id:'m_'+Date.now(),name,documentType:'',documentNumber:'',birthDate,phone:'',email:'',bloodType:'',eps:'',emergencyName:'',emergencyPhone:'',allergies:'Ninguna',baptized:false,baptismDate:'',gp:'',club:'Ninguno',roles:[],gmInvestitureStatus:'',gmWorksClub:'',gmClubRole:'',clubClass:'',presentToday:false,clubRoles:{}};try{members.unshift(m);await syncMemberToCloud(m);refreshActivityMembersDatalist();const r=document.getElementById('activity-responsible-initial'),o=document.getElementById('activity-organizers-initial');if(r&&!r.value.trim())r.value=name;else if(o)o.value=o.value.trim()?o.value.trim()+', '+name:name;ni.value='';bi.value='';refreshAllUI();showToast('Persona agregada a Miembros.','success')}catch(e){members=members.filter(x=>x.id!==m.id);console.error(e);showToast('No se pudo agregar la persona.','error')}}
+        async function addActivityOrganizerToMembers(){if(!isAdmin()){showToast('Solo el administrador puede agregar personas a Miembros.','error');return;}const ni=document.getElementById('activity-new-organizer-name'),bi=document.getElementById('activity-new-organizer-birthdate'),name=(ni?.value||'').trim(),birthDate=bi?.value||'';if(!name){showToast('Escribe el nombre completo.','error');return;}const ex=members.find(m=>String(m.name||'').trim().toLowerCase()===name.toLowerCase());if(ex){const r=document.getElementById('activity-responsible-initial'),o=document.getElementById('activity-organizers-initial');if(r&&!r.value.trim())r.value=ex.name;else if(o)o.value=o.value.trim()?o.value.trim()+', '+ex.name:ex.name;showToast('La persona ya existe en Miembros y fue seleccionada.','info');return;}if(!birthDate){showToast('Registra la fecha de nacimiento para agregar la persona.','error');return;}const m={id:'m_'+Date.now(),name,documentType:'',documentNumber:'',birthDate,phone:'',email:'',bloodType:'',eps:'',emergencyName:'',emergencyPhone:'',allergies:'Ninguna',baptized:false,baptismDate:'',gp:'',club:'Ninguno',roles:[],gmInvestitureStatus:'',gmWorksClub:'',gmClubRole:'',clubClass:'',presentToday:false,clubRoles:{}};try{members.unshift(m);await syncMemberToCloud(m);refreshActivityMembersDatalist();const r=document.getElementById('activity-responsible-initial'),o=document.getElementById('activity-organizers-initial');if(r&&!r.value.trim())r.value=name;else if(o)o.value=o.value.trim()?o.value.trim()+', '+name:name;ni.value='';bi.value='';refreshAllUI();showToast('Persona agregada a Miembros.','success')}catch(e){members=members.filter(x=>x.id!==m.id);console.error(e);showToast('No se pudo agregar la persona.','error')}}
 
         function editActivity(activityId) {
             if (!isAdmin()) {
@@ -4675,6 +4735,8 @@
             document.getElementById('activity-end-time-initial').value = activity.endTime || '';
             document.getElementById('activity-place-initial').value = activity.place || '';
             document.getElementById('activity-status-initial').value = activity.status || 'Programada';
+            document.getElementById('activity-capacity-initial').value = activity.maxCapacity ?? '';
+            document.getElementById('activity-cost-initial').value = activity.participationCost ?? '';
             document.getElementById('activity-description-initial').value = activity.description || '';
             document.getElementById('activity-responsible-initial').value = activity.responsible?.name || activity.responsible || '';
             document.getElementById('activity-organizers-initial').value = Array.isArray(activity.organizers) ? activity.organizers.map(p=>p.name||p).join(', ') : (activity.organizers||'');
@@ -4726,6 +4788,8 @@
                     type, name, startDate, endDate: endDate || '',
                     startTime, endTime: endTime || '', place: place || '',
                     description: description || '', status,
+                    maxCapacity: (() => { const v = Number(document.getElementById('activity-capacity-initial')?.value); return Number.isFinite(v) && v > 0 ? Math.floor(v) : null; })(),
+                    participationCost: (() => { const v = Number(document.getElementById('activity-cost-initial')?.value); return Number.isFinite(v) && v >= 0 && document.getElementById('activity-cost-initial')?.value !== '' ? v : null; })(),
                     specificData: getActivitySpecificData(),
                     responsible: responsibleName ? {memberId: members.find(m=>String(m.name||'').trim().toLowerCase()===responsibleName.toLowerCase())?.id||'',name:responsibleName}:null,
                     organizers: organizerNames.map(name=>({memberId:members.find(m=>String(m.name||'').trim().toLowerCase()===name.toLowerCase())?.id||'',name})),
@@ -4808,6 +4872,8 @@
                 place: place || '',
                 description: description || '',
                 status,
+                maxCapacity: (() => { const v = Number(document.getElementById('activity-capacity-initial')?.value); return Number.isFinite(v) && v > 0 ? Math.floor(v) : null; })(),
+                participationCost: (() => { const v = Number(document.getElementById('activity-cost-initial')?.value); return Number.isFinite(v) && v >= 0 && document.getElementById('activity-cost-initial')?.value !== '' ? v : null; })(),
                 specificData: getActivitySpecificData(),
                 responsible: responsibleName ? {memberId: members.find(m=>String(m.name||'').trim().toLowerCase()===responsibleName.toLowerCase())?.id||'',name:responsibleName}:null,
                 organizers: organizerNames.map(name=>({memberId:members.find(m=>String(m.name||'').trim().toLowerCase()===name.toLowerCase())?.id||'',name})),
@@ -4918,7 +4984,10 @@
             clearClubAssignments,
             openResetModal,
             closeConfirmModal
-        });
+        
+            getEffectiveActivityStatus,
+            getActivityCapacity,
+            getActivityCost,});
 
         // Advertencia nativa del navegador al recargar, cerrar o abandonar la página.
         window.addEventListener('beforeunload', handleBeforeUnloadUnsavedClubChanges);
