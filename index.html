@@ -849,6 +849,55 @@
                         <span id="activities-count" class="text-xs font-bold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full">0 actividades</span>
                     </div>
 
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-5 p-4 rounded-xl bg-slate-50 border border-slate-200">
+                        <div class="lg:col-span-2">
+                            <label for="activities-search" class="block text-xs font-bold text-slate-600 mb-1.5">Buscar por nombre</label>
+                            <div class="relative">
+                                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                                <input id="activities-search" type="text" placeholder="Escribe el nombre de la actividad..." oninput="applyActivityFilters()" class="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-blue-200">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="activities-date-filter" class="block text-xs font-bold text-slate-600 mb-1.5">Fecha</label>
+                            <input id="activities-date-filter" type="date" onchange="applyActivityFilters()" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-blue-200">
+                        </div>
+                        <div>
+                            <label for="activities-type-filter" class="block text-xs font-bold text-slate-600 mb-1.5">Tipo de actividad</label>
+                            <select id="activities-type-filter" onchange="applyActivityFilters()" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-blue-200">
+                                <option value="">Todos los tipos</option>
+                                <option value="Vigilia">Vigilia</option>
+                                <option value="Despertar con Jesús">Despertar con Jesús</option>
+                                <option value="Semana de Oración">Semana de Oración</option>
+                                <option value="Campaña evangelística">Campaña evangelística</option>
+                                <option value="Culto Joven">Culto Joven</option>
+                                <option value="Reunión de jóvenes">Reunión de jóvenes</option>
+                                <option value="Juegos Sociales">Juegos Sociales</option>
+                                <option value="Retiro">Retiro</option>
+                                <option value="Concilio">Concilio</option>
+                                <option value="Caminata">Caminata</option>
+                                <option value="Paseo">Paseo</option>
+                                <option value="Convivencia">Convivencia</option>
+                                <option value="Actividad misionera">Actividad misionera</option>
+                                <option value="Programa especial">Programa especial</option>
+                                <option value="Otro">Otro</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="activities-status-filter" class="block text-xs font-bold text-slate-600 mb-1.5">Estado</label>
+                            <select id="activities-status-filter" onchange="applyActivityFilters()" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-blue-200">
+                                <option value="">Todos los estados</option>
+                                <option value="Programada">Programada</option>
+                                <option value="Realizada">Realizada</option>
+                                <option value="Cancelada">Cancelada</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-2 lg:col-span-4 flex justify-end">
+                            <button type="button" onclick="clearActivityFilters()" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-bold transition-colors cursor-pointer">
+                                <i class="fas fa-rotate-left"></i><span>Limpiar filtros</span>
+                            </button>
+                        </div>
+                    </div>
+
                     <div id="activities-list" class="space-y-3">
                         <div class="text-center py-8 text-slate-400">
                             <i class="fas fa-calendar-day text-2xl mb-2"></i>
@@ -4279,12 +4328,40 @@
             }
         }
 
+        function getFilteredActivities() {
+            const search = (document.getElementById('activities-search')?.value || '').trim().toLowerCase();
+            const date = document.getElementById('activities-date-filter')?.value || '';
+            const type = document.getElementById('activities-type-filter')?.value || '';
+            const status = document.getElementById('activities-status-filter')?.value || '';
+
+            return activities.filter(activity => {
+                const name = String(activity.name || '').toLowerCase();
+                const matchesSearch = !search || name.includes(search);
+                const matchesDate = !date || activity.startDate === date || activity.endDate === date ||
+                    (activity.startDate && activity.endDate && activity.startDate < date && activity.endDate > date);
+                const matchesType = !type || activity.type === type;
+                const matchesStatus = !status || (activity.status || 'Programada') === status;
+                return matchesSearch && matchesDate && matchesType && matchesStatus;
+            });
+        }
+
+        function applyActivityFilters() {
+            renderActivitiesList();
+        }
+
+        function clearActivityFilters() {
+            const ids = ['activities-search','activities-date-filter','activities-type-filter','activities-status-filter'];
+            ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+            renderActivitiesList();
+        }
+
         function renderActivitiesList() {
             const container = document.getElementById('activities-list');
             const count = document.getElementById('activities-count');
             if (!container) return;
 
-            const sorted = [...activities].sort((a, b) => {
+            const filtered = getFilteredActivities();
+            const sorted = [...filtered].sort((a, b) => {
                 const da = `${a.startDate || ''}T${a.startTime || '00:00'}`;
                 const db = `${b.startDate || ''}T${b.startTime || '00:00'}`;
                 return da.localeCompare(db);
@@ -4298,8 +4375,8 @@
                 container.innerHTML = `
                     <div class="text-center py-10 text-slate-400">
                         <i class="fas fa-calendar-xmark text-3xl mb-3"></i>
-                        <p class="font-semibold text-sm">No hay actividades programadas</p>
-                        <p class="text-xs mt-1">Las actividades guardadas aparecerán aquí.</p>
+                        <p class="font-semibold text-sm">No se encontraron actividades</p>
+                        <p class="text-xs mt-1">Prueba con otros filtros o limpia la búsqueda.</p>
                     </div>`;
                 return;
             }
@@ -4641,6 +4718,8 @@
             deleteActivity,
             resetActivityForm,
             renderActivitiesList,
+            applyActivityFilters,
+            clearActivityFilters,
             loadActivitiesFromCloud,
             buildWhatsAppActivityText,
             copyActivityToWhatsApp,
