@@ -254,6 +254,18 @@
                         <i class="fas fa-calendar-days w-5 text-center"></i>
                         <span>Actividades JA</span>
                     </button>
+                    <button data-view="attendance-history" class="nav-btn w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-white transition-all">
+                        <i class="fas fa-clock-rotate-left w-5 text-center"></i>
+                        <span>Historial de asistencia</span>
+                    </button>
+                    <button data-view="attendance-general-report" class="nav-btn w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-white transition-all">
+                        <i class="fas fa-chart-column w-5 text-center"></i>
+                        <span>Reporte general de asistencia</span>
+                    </button>
+                    <button data-view="attendance-individual" class="nav-btn w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-white transition-all">
+                        <i class="fas fa-user-chart w-5 text-center"></i>
+                        <span>Reporte individual</span>
+                    </button>
 
                     <div class="pt-4 pb-1">
                         <p class="px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Ministerios Juveniles</p>
@@ -819,6 +831,132 @@
             </section>
 
 
+
+            <!-- ========================================== -->
+            <!-- VISTA: HISTORIAL GENERAL DE ASISTENCIA      -->
+            <!-- ========================================== -->
+            <section id="view-attendance-history" class="view-section hidden space-y-6 fade-in">
+                <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full">Seguimiento de asistencia</span>
+                            <h1 class="text-2xl font-extrabold text-slate-900 mt-2">Historial general de asistencia</h1>
+                            <p class="text-slate-500 text-sm mt-1">Consulta la asistencia acumulada de los participantes en las Actividades JA.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 lg:grid-cols-5 gap-3" id="attendance-history-stats"></div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 mb-5 p-4 rounded-xl bg-slate-50 border border-slate-200">
+                        <div class="lg:col-span-2">
+                            <label for="attendance-history-search" class="block text-xs font-bold text-slate-600 mb-1.5">Buscar participante</label>
+                            <div class="relative">
+                                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                                <input id="attendance-history-search" type="text" placeholder="Nombre del participante..." oninput="applyAttendanceHistoryFilters()" class="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-emerald-200">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="attendance-history-activity" class="block text-xs font-bold text-slate-600 mb-1.5">Actividad</label>
+                            <select id="attendance-history-activity" onchange="applyAttendanceHistoryFilters()" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-emerald-200">
+                                <option value="">Todas las actividades</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="attendance-history-date" class="block text-xs font-bold text-slate-600 mb-1.5">Fecha</label>
+                            <input id="attendance-history-date" type="date" onchange="applyAttendanceHistoryFilters()" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-emerald-200">
+                        </div>
+                        <div>
+                            <label for="attendance-history-status" class="block text-xs font-bold text-slate-600 mb-1.5">Estado</label>
+                            <select id="attendance-history-status" onchange="applyAttendanceHistoryFilters()" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-emerald-200">
+                                <option value="">Todos</option>
+                                <option value="Presente">Presente</option>
+                                <option value="No asistió">No asistió</option>
+                                <option value="Justificado">Justificado</option>
+                                <option value="Pendiente">Pendiente</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-2 lg:col-span-5 flex justify-end">
+                            <button type="button" onclick="clearAttendanceHistoryFilters()" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-bold transition-colors cursor-pointer">
+                                <i class="fas fa-rotate-left"></i><span>Limpiar filtros</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full min-w-[760px] text-sm">
+                            <thead>
+                                <tr class="border-b border-slate-200 text-left">
+                                    <th class="px-3 py-3 text-[10px] uppercase tracking-wide text-slate-500 font-extrabold">Participante</th>
+                                    <th class="px-3 py-3 text-[10px] uppercase tracking-wide text-slate-500 font-extrabold">Actividad</th>
+                                    <th class="px-3 py-3 text-[10px] uppercase tracking-wide text-slate-500 font-extrabold">Fecha</th>
+                                    <th class="px-3 py-3 text-[10px] uppercase tracking-wide text-slate-500 font-extrabold">Tipo</th>
+                                    <th class="px-3 py-3 text-[10px] uppercase tracking-wide text-slate-500 font-extrabold">Estado</th>
+                                    <th class="px-3 py-3 text-[10px] uppercase tracking-wide text-slate-500 font-extrabold">% asistencia</th>
+                                    <th class="px-3 py-3 text-[10px] uppercase tracking-wide text-slate-500 font-extrabold">Reporte</th>
+                                </tr>
+                            </thead>
+                            <tbody id="attendance-history-list"></tbody>
+                        </table>
+                    </div>
+                    <div id="attendance-history-empty" class="hidden text-center py-10 text-slate-400">
+                        <i class="fas fa-clipboard-check text-3xl mb-2"></i>
+                        <p class="text-sm font-semibold">No hay registros de asistencia para mostrar.</p>
+                    </div>
+                    <div class="mt-4 text-xs text-slate-400" id="attendance-history-count">0 registros</div>
+                </div>
+            </section>
+
+            <!-- ========================================== -->
+            <!-- VISTA: REPORTE INDIVIDUAL DE ASISTENCIA     -->
+            <!-- ========================================== -->
+            <section id="view-attendance-individual" class="view-section hidden space-y-6 fade-in">
+                <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80 print:hidden">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <span class="text-xs font-bold uppercase tracking-wider text-blue-700 bg-blue-50 px-3 py-1 rounded-full">Seguimiento individual</span>
+                            <h1 class="text-2xl font-extrabold text-slate-900 mt-2">Reporte individual de asistencia</h1>
+                            <p class="text-slate-500 text-sm mt-1">Consulta el comportamiento de asistencia de un participante en las Actividades JA.</p>
+                        </div>
+                        <button type="button" onclick="printIndividualAttendanceReport()" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold cursor-pointer">
+                            <i class="fas fa-print"></i><span>Imprimir / PDF</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80 print:hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div class="md:col-span-2">
+                            <label for="individual-attendance-participant" class="block text-xs font-bold text-slate-600 mb-1.5">Participante</label>
+                            <select id="individual-attendance-participant" onchange="renderIndividualAttendanceReport()" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-blue-200">
+                                <option value="">Seleccione un participante</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="individual-attendance-from" class="block text-xs font-bold text-slate-600 mb-1.5">Desde</label>
+                            <input id="individual-attendance-from" type="date" onchange="renderIndividualAttendanceReport()" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-blue-200">
+                        </div>
+                        <div>
+                            <label for="individual-attendance-to" class="block text-xs font-bold text-slate-600 mb-1.5">Hasta</label>
+                            <input id="individual-attendance-to" type="date" onchange="renderIndividualAttendanceReport()" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-blue-200">
+                        </div>
+                        <div class="md:col-span-2 flex items-end">
+                            <button type="button" onclick="clearIndividualAttendanceReport()" class="inline-flex items-center gap-2 px-3 py-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold cursor-pointer">
+                                <i class="fas fa-rotate-left"></i><span>Limpiar</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="individual-attendance-report" class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80">
+                    <div class="text-center py-12 text-slate-400">
+                        <i class="fas fa-user-chart text-4xl mb-3"></i>
+                        <p class="font-semibold">Seleccione un participante para generar su reporte.</p>
+                    </div>
+                </div>
+            </section>
+
             <!-- ========================================== -->
             <!-- VISTA 5: ACTIVIDADES JA                    -->
             <!-- ========================================== -->
@@ -1381,6 +1519,81 @@
                 </div>
             </section>
 
+            <!-- ========================================== -->
+            <!-- VISTA: REPORTE GENERAL DE ASISTENCIA        -->
+            <!-- ========================================== -->
+            <section id="view-attendance-general-report" class="view-section hidden space-y-6 fade-in">
+                <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80 print:hidden">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <span class="text-xs font-bold uppercase tracking-wider text-violet-700 bg-violet-50 px-3 py-1 rounded-full">Consolidado de asistencia</span>
+                            <h1 class="text-2xl font-extrabold text-slate-900 mt-2">Reporte general de asistencia</h1>
+                            <p class="text-slate-500 text-sm mt-1">Consulta el comportamiento de asistencia de las Actividades JA en un solo reporte.</p>
+                        </div>
+                        <button type="button" onclick="printGeneralAttendanceReport()" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold cursor-pointer">
+                            <i class="fas fa-print"></i><span>Imprimir / PDF</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80 print:hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                            <label for="general-attendance-from" class="block text-xs font-bold text-slate-600 mb-1.5">Fecha inicial</label>
+                            <input id="general-attendance-from" type="date" onchange="renderGeneralAttendanceReport()" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-violet-200">
+                        </div>
+                        <div>
+                            <label for="general-attendance-to" class="block text-xs font-bold text-slate-600 mb-1.5">Fecha final</label>
+                            <input id="general-attendance-to" type="date" onchange="renderGeneralAttendanceReport()" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-violet-200">
+                        </div>
+                        <div>
+                            <label for="general-attendance-type" class="block text-xs font-bold text-slate-600 mb-1.5">Tipo de actividad</label>
+                            <select id="general-attendance-type" onchange="renderGeneralAttendanceReport()" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-violet-200">
+                                <option value="">Todos los tipos</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="flex justify-end mt-3">
+                        <button type="button" onclick="clearGeneralAttendanceReportFilters()" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold cursor-pointer">
+                            <i class="fas fa-rotate-left"></i> Limpiar filtros
+                        </button>
+                    </div>
+                </div>
+
+                <div id="general-attendance-stats" class="grid grid-cols-2 lg:grid-cols-7 gap-3"></div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                        <div>
+                            <h2 class="font-extrabold text-slate-900 text-lg">Resumen por actividad</h2>
+                            <p id="general-attendance-count" class="text-xs text-slate-400 mt-1">0 actividades</p>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse min-w-[900px]">
+                            <thead>
+                                <tr class="border-b border-slate-200">
+                                    <th class="px-3 py-3 text-[10px] uppercase tracking-wide text-slate-500 font-extrabold">Fecha</th>
+                                    <th class="px-3 py-3 text-[10px] uppercase tracking-wide text-slate-500 font-extrabold">Actividad</th>
+                                    <th class="px-3 py-3 text-[10px] uppercase tracking-wide text-slate-500 font-extrabold">Tipo</th>
+                                    <th class="px-3 py-3 text-[10px] uppercase tracking-wide text-slate-500 font-extrabold text-center">Participantes</th>
+                                    <th class="px-3 py-3 text-[10px] uppercase tracking-wide text-slate-500 font-extrabold text-center">Presentes</th>
+                                    <th class="px-3 py-3 text-[10px] uppercase tracking-wide text-slate-500 font-extrabold text-center">No asistieron</th>
+                                    <th class="px-3 py-3 text-[10px] uppercase tracking-wide text-slate-500 font-extrabold text-center">Justificados</th>
+                                    <th class="px-3 py-3 text-[10px] uppercase tracking-wide text-slate-500 font-extrabold text-center">Pendientes</th>
+                                    <th class="px-3 py-3 text-[10px] uppercase tracking-wide text-slate-500 font-extrabold text-center">% asistencia</th>
+                                </tr>
+                            </thead>
+                            <tbody id="general-attendance-list"></tbody>
+                        </table>
+                    </div>
+                    <div id="general-attendance-empty" class="hidden text-center py-10 text-slate-400">
+                        <i class="fas fa-chart-column text-3xl mb-2"></i>
+                        <p class="text-sm font-semibold">No hay actividades con registros de asistencia para mostrar.</p>
+                    </div>
+                </div>
+            </section>
+
         </main>
     </div>
 
@@ -1757,6 +1970,7 @@
                 <div class="rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-700">
                     Marca el estado de cada participante. Solo el administrador puede guardar los cambios.
                 </div>
+                <div id="activity-attendance-stats" class="grid grid-cols-2 sm:grid-cols-5 gap-2"></div>
                 <div id="activity-attendance-list" class="space-y-2"></div>
                 <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
                     <button type="button" onclick="closeActivityAttendanceModal()" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200">Cerrar</button>
@@ -2415,6 +2629,13 @@
             }
             if (viewName === 'dashboard') {
                 renderDashboard();
+            }
+            if (viewName === 'attendance-history') {
+                renderAttendanceHistory();
+            }
+            if (viewName === 'attendance-individual') {
+                populateIndividualAttendanceParticipants();
+                renderIndividualAttendanceReport();
             }
         }
 
@@ -4133,6 +4354,8 @@
             html += `<div class="pt-3 border-t border-slate-200"><h3 class="font-bold text-slate-900 mb-2">Participantes (${participants.length})</h3>`;
             html += participants.length ? '<ol class="space-y-1 text-sm text-slate-700">' + participants.map(p => `<li>${escapeActivityHtml(p.name || 'Sin nombre')}</li>`).join('') + '</ol>' : '<p class="text-sm text-slate-500">No hay participantes registrados.</p>';
             html += '</div>';
+            const attendanceStats = getActivityAttendanceStats(activity);
+            html += `<div class="pt-3 border-t border-slate-200"><div class="flex items-center justify-between gap-2 mb-3"><h3 class="font-bold text-slate-900">Resumen de asistencia</h3><span class="text-xs font-extrabold text-blue-700">${attendanceStats.percentage}%</span></div><div class="grid grid-cols-2 sm:grid-cols-4 gap-2">${[['Presentes',attendanceStats.present,'text-emerald-700'],['No asistieron',attendanceStats.absent,'text-red-700'],['Justificados',attendanceStats.justified,'text-amber-700'],['Pendientes',attendanceStats.pending,'text-slate-600']].map(([label,value,cls])=>`<div class="p-3 rounded-xl bg-slate-50 border border-slate-200"><p class="text-[10px] font-bold uppercase text-slate-500">${escapeActivityHtml(label)}</p><p class="text-lg font-extrabold ${cls} mt-1">${value}</p></div>`).join('')}</div></div>`;
             if (content) content.innerHTML = html;
             if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
         }
@@ -4556,6 +4779,45 @@
             return allowed.includes(value) ? value : 'Pendiente';
         }
 
+        function getActivityAttendanceStats(activity, sourceAttendance = null) {
+            const participants = Array.isArray(activity?.participants) ? activity.participants : [];
+            const saved = sourceAttendance && typeof sourceAttendance === 'object'
+                ? sourceAttendance
+                : (activity?.attendance && typeof activity.attendance === 'object' ? activity.attendance : {});
+            let present = 0, absent = 0, justified = 0, pending = 0;
+            participants.forEach((participant, index) => {
+                const key = participant.memberId || `manual-${index}-${String(participant.name || '').trim().toLowerCase()}`;
+                const status = normalizeAttendanceStatus(saved[key]);
+                if (status === 'Presente') present++;
+                else if (status === 'No asistió') absent++;
+                else if (status === 'Justificado') justified++;
+                else pending++;
+            });
+            const total = participants.length;
+            const percentage = total ? Math.round((present / total) * 100) : 0;
+            return { total, present, absent, justified, pending, percentage };
+        }
+
+        function renderActivityAttendanceStats(stats) {
+            const container = document.getElementById('activity-attendance-stats');
+            if (!container) return;
+            const cards = [
+                ['Total', stats.total, 'bg-slate-50 border-slate-200 text-slate-700', 'fa-users'],
+                ['Presentes', stats.present, 'bg-emerald-50 border-emerald-200 text-emerald-700', 'fa-circle-check'],
+                ['No asistieron', stats.absent, 'bg-red-50 border-red-200 text-red-700', 'fa-circle-xmark'],
+                ['Justificados', stats.justified, 'bg-amber-50 border-amber-200 text-amber-700', 'fa-circle-exclamation'],
+                ['Asistencia', `${stats.percentage}%`, 'bg-blue-50 border-blue-200 text-blue-700', 'fa-chart-pie']
+            ];
+            container.innerHTML = cards.map(([label, value, classes, icon]) => `
+                <div class="rounded-xl border px-3 py-2 ${classes}">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-[10px] font-bold uppercase tracking-wide">${escapeActivityHtml(label)}</span>
+                        <i class="fas ${icon} text-xs"></i>
+                    </div>
+                    <p class="text-lg font-extrabold mt-1">${escapeActivityHtml(String(value))}</p>
+                </div>`).join('');
+        }
+
         function openActivityAttendance(activityId) {
             const activity = activities.find(item => item.id === activityId);
             if (!activity) {
@@ -4605,16 +4867,9 @@
             const summary = document.getElementById('activity-attendance-summary');
             if (!list || !activity) return;
             const participants = Array.isArray(activity.participants) ? activity.participants : [];
-            let present = 0, absent = 0, justified = 0, pending = 0;
-            participants.forEach((participant, index) => {
-                const key = participant.memberId || `manual-${index}-${String(participant.name || '').trim().toLowerCase()}`;
-                const status = normalizeAttendanceStatus(pendingActivityAttendance[key]);
-                if (status === 'Presente') present++;
-                else if (status === 'No asistió') absent++;
-                else if (status === 'Justificado') justified++;
-                else pending++;
-            });
-            if (summary) summary.textContent = `${participants.length} participantes · ${present} presentes · ${absent} no asistieron · ${justified} justificados${pending ? ` · ${pending} pendientes` : ''}`;
+            const stats = getActivityAttendanceStats(activity, pendingActivityAttendance);
+            renderActivityAttendanceStats(stats);
+            if (summary) summary.textContent = `${stats.total} participantes · ${stats.present} presentes · ${stats.absent} no asistieron · ${stats.justified} justificados${stats.pending ? ` · ${stats.pending} pendientes` : ''}`;
             if (!participants.length) {
                 list.innerHTML = `
                     <div class="text-center py-8 rounded-xl border border-dashed border-slate-200 text-slate-400">
@@ -4743,6 +4998,7 @@
                                     <i class="fab fa-whatsapp"></i><span>Copiar para WhatsApp</span>
                                 </button>
                             </div>
+                            ${(() => { const stats = getActivityAttendanceStats(activity); return `<div class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs"><span class="font-bold text-slate-600"><i class="fas fa-chart-pie mr-1"></i>Asistencia: ${stats.present}/${stats.total} (${stats.percentage}%)</span><span class="text-emerald-700">✓ ${stats.present}</span><span class="text-red-600">✕ ${stats.absent}</span><span class="text-amber-700">! ${stats.justified}</span><span class="text-slate-500">Pendientes: ${stats.pending}</span></div>`; })()}
                         </div>
                     </div>
                 </div>
@@ -5122,6 +5378,202 @@
             if (panel) panel.classList.add('hidden');
         }
 
+
+        // ==========================================
+        // 19. HISTORIAL GENERAL DE ASISTENCIA
+        // ==========================================
+        function buildAttendanceHistoryRows() {
+            const rows = [];
+            (Array.isArray(activities) ? activities : []).forEach(activity => {
+                const participants = Array.isArray(activity.participants) ? activity.participants : [];
+                const attendance = activity.attendance && typeof activity.attendance === 'object' ? activity.attendance : {};
+                participants.forEach((participant, index) => {
+                    const key = participant.memberId || `manual-${index}-${String(participant.name || '').trim().toLowerCase()}`;
+                    rows.push({
+                        key: participant.memberId || `name:${String(participant.name || '').trim().toLowerCase()}`,
+                        memberId: participant.memberId || '',
+                        participantName: participant.name || 'Sin nombre',
+                        activityId: activity.id,
+                        activityName: activity.name || 'Sin nombre',
+                        activityType: activity.type || 'Sin tipo',
+                        date: activity.startDate || '',
+                        status: normalizeAttendanceStatus(attendance[key])
+                    });
+                });
+            });
+            return rows;
+        }
+
+        function renderAttendanceHistoryActivityOptions() {
+            const select = document.getElementById('attendance-history-activity');
+            if (!select) return;
+            const current = select.value;
+            const unique = [];
+            (Array.isArray(activities) ? activities : []).forEach(activity => {
+                if (!activity.id || unique.some(item => item.id === activity.id)) return;
+                unique.push({id: activity.id, name: activity.name || 'Sin nombre'});
+            });
+            unique.sort((a,b) => a.name.localeCompare(b.name, 'es'));
+            select.innerHTML = '<option value="">Todas las actividades</option>' + unique.map(item => `<option value="${escapeActivityHtml(item.id)}">${escapeActivityHtml(item.name)}</option>`).join('');
+            if (unique.some(item => item.id === current)) select.value = current;
+        }
+
+        function getFilteredAttendanceHistoryRows() {
+            const search = (document.getElementById('attendance-history-search')?.value || '').trim().toLowerCase();
+            const activityId = document.getElementById('attendance-history-activity')?.value || '';
+            const date = document.getElementById('attendance-history-date')?.value || '';
+            const status = document.getElementById('attendance-history-status')?.value || '';
+            return buildAttendanceHistoryRows().filter(row => {
+                return (!search || row.participantName.toLowerCase().includes(search)) &&
+                    (!activityId || row.activityId === activityId) &&
+                    (!date || row.date === date) &&
+                    (!status || row.status === status);
+            });
+        }
+
+        function renderAttendanceHistoryStats(rows) {
+            const container = document.getElementById('attendance-history-stats');
+            if (!container) return;
+            const total = rows.length;
+            const present = rows.filter(r => r.status === 'Presente').length;
+            const absent = rows.filter(r => r.status === 'No asistió').length;
+            const justified = rows.filter(r => r.status === 'Justificado').length;
+            const pending = rows.filter(r => r.status === 'Pendiente').length;
+            const percentage = total ? Math.round((present / total) * 100) : 0;
+            const cards = [
+                ['Registros', total, 'border-slate-200', 'text-slate-600', 'text-slate-700', 'fa-list'],
+                ['Presentes', present, 'border-emerald-200', 'text-emerald-600', 'text-emerald-700', 'fa-circle-check'],
+                ['No asistieron', absent, 'border-red-200', 'text-red-600', 'text-red-700', 'fa-circle-xmark'],
+                ['Justificados', justified, 'border-amber-200', 'text-amber-600', 'text-amber-700', 'fa-circle-exclamation'],
+                ['Asistencia', `${percentage}%`, 'border-blue-200', 'text-blue-600', 'text-blue-700', 'fa-chart-pie']
+            ];
+            container.innerHTML = cards.map(([label,value,border,iconColor,valueColor,icon]) => `<div class="bg-white rounded-2xl border ${border} p-4 shadow-xs"><div class="flex items-center justify-between"><span class="text-[10px] font-extrabold uppercase tracking-wide text-slate-500">${label}</span><i class="fas ${icon} ${iconColor}"></i></div><p class="text-2xl font-black ${valueColor} mt-2">${value}</p></div>`).join('');
+        }
+
+        function renderAttendanceHistory() {
+            renderAttendanceHistoryActivityOptions();
+            const rows = getFilteredAttendanceHistoryRows().sort((a,b) => `${b.date}T00:00` .localeCompare(`${a.date}T00:00`));
+            const tbody = document.getElementById('attendance-history-list');
+            const empty = document.getElementById('attendance-history-empty');
+            const count = document.getElementById('attendance-history-count');
+            renderAttendanceHistoryStats(rows);
+            if (count) count.textContent = `${rows.length} ${rows.length === 1 ? 'registro' : 'registros'}`;
+            if (!tbody) return;
+            if (!rows.length) {
+                tbody.innerHTML = '';
+                if (empty) empty.classList.remove('hidden');
+                return;
+            }
+            if (empty) empty.classList.add('hidden');
+            const statusClasses = {
+                'Presente':'bg-emerald-50 text-emerald-700 border-emerald-200',
+                'No asistió':'bg-red-50 text-red-700 border-red-200',
+                'Justificado':'bg-amber-50 text-amber-700 border-amber-200',
+                'Pendiente':'bg-slate-100 text-slate-600 border-slate-200'
+            };
+            const participantTotals = {};
+            rows.forEach(row => {
+                const key = row.memberId ? `member:${row.memberId}` : row.key;
+                if (!participantTotals[key]) participantTotals[key] = { total: 0, present: 0 };
+                participantTotals[key].total++;
+                if (row.status === 'Presente') participantTotals[key].present++;
+            });
+            tbody.innerHTML = rows.map(row => {
+                const key = row.memberId ? `member:${row.memberId}` : row.key;
+                const info = participantTotals[key] || { total: 0, present: 0 };
+                const individualPercentage = info.total ? Math.round((info.present / info.total) * 100) : 0;
+                return `<tr class="border-b border-slate-100 hover:bg-slate-50"><td class="px-3 py-3 font-bold text-slate-800">${escapeActivityHtml(row.participantName)}</td><td class="px-3 py-3 text-slate-700">${escapeActivityHtml(row.activityName)}</td><td class="px-3 py-3 text-slate-500">${formatActivityDate(row.date)}</td><td class="px-3 py-3 text-slate-500">${escapeActivityHtml(row.activityType)}</td><td class="px-3 py-3"><span class="inline-flex px-2.5 py-1 rounded-full border text-[10px] font-extrabold ${statusClasses[row.status] || statusClasses['Pendiente']}">${escapeActivityHtml(row.status)}</span></td><td class="px-3 py-3 font-extrabold text-blue-700">${individualPercentage}%</td><td class="px-3 py-3"><button type="button" onclick="openIndividualAttendanceReport('${escapeActivityHtml(row.memberId || '')}','${escapeActivityHtml(row.participantName || '')}')" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-[10px] font-bold cursor-pointer"><i class="fas fa-chart-user"></i> Ver reporte</button></td></tr>`;
+            }).join('');
+        }
+
+        function applyAttendanceHistoryFilters() { renderAttendanceHistory(); }
+
+        function clearAttendanceHistoryFilters() {
+            ['attendance-history-search','attendance-history-activity','attendance-history-date','attendance-history-status'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+            renderAttendanceHistory();
+        }
+
+        // ==========================================
+        // 20. REPORTE INDIVIDUAL DE ASISTENCIA
+        // ==========================================
+        function populateIndividualAttendanceParticipants(selectedKey = '') {
+            const select = document.getElementById('individual-attendance-participant');
+            if (!select) return;
+            const current = selectedKey || select.value || '';
+            const map = new Map();
+            buildAttendanceHistoryRows().forEach(row => {
+                const key = row.memberId ? `member:${row.memberId}` : `name:${row.participantName.trim().toLowerCase()}`;
+                if (!map.has(key)) map.set(key, { key, memberId: row.memberId || '', name: row.participantName });
+            });
+            const people = [...map.values()].sort((a,b) => a.name.localeCompare(b.name, 'es'));
+            select.innerHTML = '<option value="">Seleccione un participante</option>' + people.map(person => `<option value="${escapeActivityHtml(person.key)}">${escapeActivityHtml(person.name)}</option>`).join('');
+            if (people.some(p => p.key === current)) select.value = current;
+        }
+
+        function getIndividualAttendanceRows() {
+            const selected = document.getElementById('individual-attendance-participant')?.value || '';
+            const from = document.getElementById('individual-attendance-from')?.value || '';
+            const to = document.getElementById('individual-attendance-to')?.value || '';
+            if (!selected) return [];
+            return buildAttendanceHistoryRows().filter(row => {
+                const key = row.memberId ? `member:${row.memberId}` : `name:${row.participantName.trim().toLowerCase()}`;
+                return key === selected && (!from || row.date >= from) && (!to || row.date <= to);
+            }).sort((a,b) => `${b.date}`.localeCompare(`${a.date}`));
+        }
+
+        function renderIndividualAttendanceReport() {
+            populateIndividualAttendanceParticipants();
+            const container = document.getElementById('individual-attendance-report');
+            if (!container) return;
+            const rows = getIndividualAttendanceRows();
+            if (!rows.length) {
+                container.innerHTML = `<div class="text-center py-12 text-slate-400"><i class="fas fa-user-chart text-4xl mb-3"></i><p class="font-semibold">Seleccione un participante para generar su reporte.</p><p class="text-xs mt-1">Los registros aparecerán cuando existan actividades con asistencia.</p></div>`;
+                return;
+            }
+            const name = rows[0].participantName;
+            const total = rows.length;
+            const present = rows.filter(r => r.status === 'Presente').length;
+            const absent = rows.filter(r => r.status === 'No asistió').length;
+            const justified = rows.filter(r => r.status === 'Justificado').length;
+            const pending = rows.filter(r => r.status === 'Pendiente').length;
+            const percentage = total ? Math.round((present / total) * 100) : 0;
+            const statusClasses = {'Presente':'bg-emerald-50 text-emerald-700 border-emerald-200','No asistió':'bg-red-50 text-red-700 border-red-200','Justificado':'bg-amber-50 text-amber-700 border-amber-200','Pendiente':'bg-slate-100 text-slate-600 border-slate-200'};
+            container.innerHTML = `
+                <div class="border-b border-slate-200 pb-5 mb-5">
+                    <p class="text-[10px] font-bold uppercase tracking-wider text-blue-600">Reporte individual de asistencia</p>
+                    <h2 class="text-2xl font-extrabold text-slate-900 mt-1">${escapeActivityHtml(name)}</h2>
+                    <p class="text-xs text-slate-500 mt-1">Actividades JA · ${total} registros</p>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+                    ${[['Actividades',total,'text-slate-700'],['Presentes',present,'text-emerald-700'],['No asistió',absent,'text-red-700'],['Justificados',justified,'text-amber-700'],['Asistencia',percentage+'%','text-blue-700']].map(([label,value,cls])=>`<div class="rounded-xl border border-slate-200 p-4"><p class="text-[10px] uppercase font-extrabold text-slate-500">${label}</p><p class="text-2xl font-black ${cls} mt-1">${value}</p></div>`).join('')}
+                </div>
+                ${pending ? `<div class="mb-5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600"><i class="fas fa-clock mr-1"></i>${pending} registro(s) pendiente(s) de definir.</div>` : ''}
+                <div class="overflow-x-auto">
+                    <table class="w-full min-w-[680px] text-sm">
+                        <thead><tr class="border-b border-slate-200 text-left"><th class="px-3 py-3 text-[10px] uppercase tracking-wide text-slate-500 font-extrabold">Fecha</th><th class="px-3 py-3 text-[10px] uppercase tracking-wide text-slate-500 font-extrabold">Actividad</th><th class="px-3 py-3 text-[10px] uppercase tracking-wide text-slate-500 font-extrabold">Tipo</th><th class="px-3 py-3 text-[10px] uppercase tracking-wide text-slate-500 font-extrabold">Estado</th></tr></thead>
+                        <tbody>${rows.map(row=>`<tr class="border-b border-slate-100"><td class="px-3 py-3 text-slate-500">${formatActivityDate(row.date)}</td><td class="px-3 py-3 font-bold text-slate-800">${escapeActivityHtml(row.activityName)}</td><td class="px-3 py-3 text-slate-500">${escapeActivityHtml(row.activityType)}</td><td class="px-3 py-3"><span class="inline-flex px-2.5 py-1 rounded-full border text-[10px] font-extrabold ${statusClasses[row.status] || statusClasses.Pendiente}">${escapeActivityHtml(row.status)}</span></td></tr>`).join('')}</tbody>
+                    </table>
+                </div>`;
+        }
+
+        function openIndividualAttendanceReport(memberId, participantName) {
+            const key = memberId ? `member:${memberId}` : `name:${String(participantName || '').trim().toLowerCase()}`;
+            switchView('attendance-individual');
+            populateIndividualAttendanceParticipants(key);
+            renderIndividualAttendanceReport();
+        }
+
+        function clearIndividualAttendanceReport() {
+            ['individual-attendance-participant','individual-attendance-from','individual-attendance-to'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+            renderIndividualAttendanceReport();
+        }
+
+        function printIndividualAttendanceReport() {
+            const selected = document.getElementById('individual-attendance-participant')?.value || '';
+            if (!selected) { showToast('Seleccione un participante antes de imprimir.', 'error'); return; }
+            window.print();
+        }
+
         // Exponer funciones al ámbito global window para eventos inline en HTML (necesario en type="module")
         // Actualiza el estado visual automáticamente cada minuto.
         // No cambia el valor guardado en Firestore.
@@ -5134,6 +5586,99 @@
                 }
             }
         }, 60000);
+
+        // ==========================================
+        // 21. REPORTE GENERAL DE ASISTENCIA
+        // ==========================================
+        function buildGeneralAttendanceRows() {
+            const from = document.getElementById('general-attendance-from')?.value || '';
+            const to = document.getElementById('general-attendance-to')?.value || '';
+            const type = document.getElementById('general-attendance-type')?.value || '';
+            return (Array.isArray(activities) ? activities : []).filter(activity => {
+                const date = activity.startDate || '';
+                return (!from || date >= from) && (!to || date <= to) && (!type || (activity.type || '') === type);
+            }).map(activity => {
+                const participants = Array.isArray(activity.participants) ? activity.participants : [];
+                const attendance = activity.attendance && typeof activity.attendance === 'object' ? activity.attendance : {};
+                let present = 0, absent = 0, justified = 0, pending = 0;
+                participants.forEach((participant, index) => {
+                    const key = participant.memberId || `manual-${index}-${String(participant.name || '').trim().toLowerCase()}`;
+                    const status = normalizeAttendanceStatus(attendance[key]);
+                    if (status === 'Presente') present++;
+                    else if (status === 'No asistió') absent++;
+                    else if (status === 'Justificado') justified++;
+                    else pending++;
+                });
+                const total = participants.length;
+                return { id: activity.id, name: activity.name || 'Sin nombre', type: activity.type || 'Sin tipo', date: activity.startDate || '', total, present, absent, justified, pending, percentage: total ? Math.round((present / total) * 100) : 0 };
+            }).filter(row => row.total > 0);
+        }
+
+        function renderGeneralAttendanceTypeOptions() {
+            const select = document.getElementById('general-attendance-type');
+            if (!select) return;
+            const current = select.value || '';
+            const types = [...new Set((Array.isArray(activities) ? activities : []).map(a => String(a.type || '').trim()).filter(Boolean))].sort((a,b) => a.localeCompare(b, 'es'));
+            select.innerHTML = '<option value="">Todos los tipos</option>' + types.map(type => `<option value="${escapeActivityHtml(type)}">${escapeActivityHtml(type)}</option>`).join('');
+            if (types.includes(current)) select.value = current;
+        }
+
+        function renderGeneralAttendanceStats(rows) {
+            const container = document.getElementById('general-attendance-stats');
+            if (!container) return;
+            const activitiesTotal = rows.length;
+            const participants = rows.reduce((sum, r) => sum + r.total, 0);
+            const present = rows.reduce((sum, r) => sum + r.present, 0);
+            const absent = rows.reduce((sum, r) => sum + r.absent, 0);
+            const justified = rows.reduce((sum, r) => sum + r.justified, 0);
+            const pending = rows.reduce((sum, r) => sum + r.pending, 0);
+            const percentage = participants ? Math.round((present / participants) * 100) : 0;
+            const cards = [
+                ['Actividades', activitiesTotal, 'text-violet-700', 'fa-calendar-days'],
+                ['Participantes', participants, 'text-slate-700', 'fa-users'],
+                ['Presentes', present, 'text-emerald-700', 'fa-circle-check'],
+                ['No asistieron', absent, 'text-red-700', 'fa-circle-xmark'],
+                ['Justificados', justified, 'text-amber-700', 'fa-circle-exclamation'],
+                ['Pendientes', pending, 'text-slate-600', 'fa-clock'],
+                ['Asistencia', `${percentage}%`, 'text-blue-700', 'fa-chart-pie']
+            ];
+            container.innerHTML = cards.map(([label,value,cls,icon]) => `<div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs"><div class="flex items-center justify-between"><span class="text-[10px] font-extrabold uppercase tracking-wide text-slate-500">${label}</span><i class="fas ${icon} ${cls}"></i></div><p class="text-2xl font-black ${cls} mt-2">${value}</p></div>`).join('');
+        }
+
+        function renderGeneralAttendanceReport() {
+            renderGeneralAttendanceTypeOptions();
+            const rows = buildGeneralAttendanceRows().sort((a,b) => `${b.date}`.localeCompare(`${a.date}`));
+            renderGeneralAttendanceStats(rows);
+            const tbody = document.getElementById('general-attendance-list');
+            const empty = document.getElementById('general-attendance-empty');
+            const count = document.getElementById('general-attendance-count');
+            if (count) count.textContent = `${rows.length} ${rows.length === 1 ? 'actividad' : 'actividades'} con asistencia registrada`;
+            if (!tbody) return;
+            if (!rows.length) { tbody.innerHTML = ''; if (empty) empty.classList.remove('hidden'); return; }
+            if (empty) empty.classList.add('hidden');
+            tbody.innerHTML = rows.map(row => `
+                <tr class="border-b border-slate-100 hover:bg-slate-50">
+                    <td class="px-3 py-3 text-xs text-slate-600 whitespace-nowrap">${escapeActivityHtml(formatActivityDate(row.date))}</td>
+                    <td class="px-3 py-3 text-xs font-bold text-slate-800">${escapeActivityHtml(row.name)}</td>
+                    <td class="px-3 py-3 text-xs text-slate-600">${escapeActivityHtml(row.type)}</td>
+                    <td class="px-3 py-3 text-xs text-center font-bold text-slate-700">${row.total}</td>
+                    <td class="px-3 py-3 text-xs text-center font-bold text-emerald-700">${row.present}</td>
+                    <td class="px-3 py-3 text-xs text-center font-bold text-red-700">${row.absent}</td>
+                    <td class="px-3 py-3 text-xs text-center font-bold text-amber-700">${row.justified}</td>
+                    <td class="px-3 py-3 text-xs text-center font-bold text-slate-600">${row.pending}</td>
+                    <td class="px-3 py-3 text-xs text-center font-extrabold text-blue-700">${row.percentage}%</td>
+                </tr>`).join('');
+        }
+
+        function clearGeneralAttendanceReportFilters() {
+            ['general-attendance-from','general-attendance-to','general-attendance-type'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+            renderGeneralAttendanceReport();
+        }
+
+        function printGeneralAttendanceReport() {
+            renderGeneralAttendanceReport();
+            window.print();
+        }
 
         Object.assign(window, {
             switchView,
@@ -5184,6 +5729,17 @@
             closeActivityAttendanceModal,
             setActivityAttendanceStatus,
             saveActivityAttendance,
+            renderAttendanceHistory,
+            applyAttendanceHistoryFilters,
+            clearAttendanceHistoryFilters,
+            populateIndividualAttendanceParticipants,
+            renderIndividualAttendanceReport,
+            openIndividualAttendanceReport,
+            clearIndividualAttendanceReport,
+            printIndividualAttendanceReport,
+            renderGeneralAttendanceReport,
+            clearGeneralAttendanceReportFilters,
+            printGeneralAttendanceReport,
             refreshActivityMembersDatalist,
             setupActivityMemberSuggestions,
             selectActivityMemberSuggestion,
@@ -5209,6 +5765,7 @@
         setDefaultScheduleDate();
         applyRolePermissionsUI();
         firebaseInitPromise = initCloudSync();
+        setTimeout(() => { renderGeneralAttendanceReport(); }, 300);
         // No intentar leer Firestore antes de que exista una sesión autenticada.
         firebaseInitPromise.catch(() => {});
     </script>
