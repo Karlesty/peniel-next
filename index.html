@@ -2523,6 +2523,20 @@
             return { churchId: normalizeChurchId(churchName), churchName };
         }
 
+        // Los cargos de Ministerios Juveniles pertenecen a la iglesia del miembro.
+        // Como Etapa 2 ya separa la colección ja_members por iglesia, aquí reforzamos
+        // la asociación para que nunca se pueda guardar un cargo en otra iglesia.
+        function isMemberInActiveChurch(member) {
+            const context = getActiveChurchContext();
+            return member && (member.churchId || normalizeChurchId(member.churchName || '')) === context.churchId;
+        }
+
+        function resetPendingClubAssignmentsForActiveChurch() {
+            pendingClubAssignments = {};
+            pendingClubAssignmentsTab = null;
+            initializePendingClubAssignments();
+        }
+
         async function syncMemberToCloud(memberObj) {
             if (!cloudReady || !currentUser || !db) return;
             const context = getActiveChurchContext();
@@ -2813,8 +2827,24 @@
             const name = String(churchName || '').trim();
             const churches = Array.isArray(districtStructure.churches) ? districtStructure.churches : [];
             if (!name || !churches.includes(name)) return;
+            if (name === activeChurch) return;
+
+            if (hasUnsavedClubChanges()) {
+                openConfirmModal(
+                    'Hay datos sin guardar',
+                    'Tienes cambios de Ministerios Juveniles sin guardar. Si cambias de iglesia, esos cambios no se guardarán. ¿Deseas continuar?',
+                    () => setActiveChurchAfterConfirmation(name)
+                );
+                return;
+            }
+
+            setActiveChurchAfterConfirmation(name);
+        }
+
+        function setActiveChurchAfterConfirmation(name) {
             activeChurch = name;
             sessionStorage.setItem('ja_active_church', activeChurch);
+            resetPendingClubAssignmentsForActiveChurch();
             renderActiveChurchSelector();
 
             // Refrescar inmediatamente la base visible de miembros sin esperar
@@ -3914,6 +3944,7 @@
 
             const persistedAssignments = {};
             members.forEach(m => {
+                if (!isMemberInActiveChurch(m)) return;
                 const role = m.clubRoles && m.clubRoles[activeClubTab];
                 if (role) persistedAssignments[role] = m.id;
             });
@@ -4116,7 +4147,9 @@
         function initializePendingClubAssignments() {
             if (pendingClubAssignmentsTab === activeClubTab) return;
             pendingClubAssignments = {};
+            const context = getActiveChurchContext();
             members.forEach(m => {
+                if (!isMemberInActiveChurch(m)) return;
                 const role = m.clubRoles && m.clubRoles[activeClubTab];
                 if (role) pendingClubAssignments[role] = m.id;
             });
@@ -4152,7 +4185,7 @@
             initializePendingClubAssignments();
             panel.classList.remove('hidden');
 
-            const eligibleMembers = members.filter(m => calculateExactAge(m.birthDate) >= 16);
+            const eligibleMembers = members.filter(m => isMemberInActiveChurch(m) && calculateExactAge(m.birthDate) >= 16);
             const assigned = { ...pendingClubAssignments };
 
             const autoDirectorRoles = {
@@ -4172,7 +4205,7 @@
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
                     <div>
                         <h3 class="font-bold text-slate-900 text-lg">Cargos del ${activeClubTab}</h3>
-                        <p class="text-xs text-slate-500">${activeClubTab === 'Ministerio JA' ? 'Asigna los cargos de Ministerio JA. Los directores de Aventureros, Conquistadores y Guías Mayores se completan automáticamente.' : 'Asigna los cargos a personas de la base de datos que tengan 16 años o más.'}</p>
+                        <p class="text-xs text-slate-500">Iglesia activa: <strong>${getActiveChurchContext().churchName}</strong>. ${activeClubTab === 'Ministerio JA' ? 'Asigna los cargos de Ministerio JA. Los directores de Aventureros, Conquistadores y Guías Mayores se completan automáticamente.' : 'Asigna los cargos a personas de la base de datos que tengan 16 años o más.'}</p>
                     </div>
                     ${isAdmin() ? `
                     <div class="flex items-center gap-2 shrink-0">
@@ -4317,11 +4350,13 @@
             const club = activeClubTab;
             const changes = [];
 
+            const churchContext = getActiveChurchContext();
             members.forEach(m => {
+                if (!isMemberInActiveChurch(m)) return;
                 const currentRole = m.clubRoles && m.clubRoles[club];
                 const newRole = Object.keys(pendingClubAssignments).find(role => pendingClubAssignments[role] === m.id) || '';
                 if (currentRole !== newRole) {
-                    const updated = { ...m, clubRoles: { ...(m.clubRoles || {}) } };
+                    const updated = { ...m, churchId: churchContext.churchId, churchName: churchContext.churchName, clubRoles: { ...(m.clubRoles || {}) } };
                     if (newRole) updated.clubRoles[club] = newRole;
                     else delete updated.clubRoles[club];
                     changes.push(updated);
@@ -4356,9 +4391,11 @@
             pendingClubAssignments = {};
             const changes = [];
 
+            const churchContext = getActiveChurchContext();
             members.forEach(m => {
+                if (!isMemberInActiveChurch(m)) return;
                 if (m.clubRoles && m.clubRoles[club]) {
-                    const updated = { ...m, clubRoles: { ...(m.clubRoles || {}) } };
+                    const updated = { ...m, churchId: churchContext.churchId, churchName: churchContext.churchName, clubRoles: { ...(m.clubRoles || {}) } };
                     delete updated.clubRoles[club];
                     changes.push(updated);
                 }
