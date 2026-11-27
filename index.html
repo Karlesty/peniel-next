@@ -5169,6 +5169,14 @@
             const activity = getActiveParticipantsActivity();
             const member = members.find(item => item.id === memberId);
             if (!activity || !member) return;
+            if ((activity.churchId || normalizeChurchId(activity.churchName || '')) !== getActiveChurchContext().churchId) {
+                showToast('Esta actividad pertenece a otra iglesia.', 'error');
+                return;
+            }
+            if (!isMemberInActiveChurch(member)) {
+                showToast('Este miembro pertenece a otra iglesia y no puede agregarse aquí.', 'error');
+                return;
+            }
 
             const participants = Array.isArray(activity.participants) ? [...activity.participants] : [];
             const capacity = Number(activity.maxCapacity);
@@ -5403,6 +5411,10 @@
                 showToast('No se encontró la actividad.', 'error');
                 return;
             }
+            if ((activity.churchId || normalizeChurchId(activity.churchName || '')) !== getActiveChurchContext().churchId) {
+                showToast('Esta actividad pertenece a otra iglesia.', 'error');
+                return;
+            }
             activeAttendanceActivityId = activityId;
             const participants = Array.isArray(activity.participants) ? activity.participants : [];
             const saved = activity.attendance && typeof activity.attendance === 'object' ? activity.attendance : {};
@@ -5486,6 +5498,11 @@
                 showToast('No se encontró la actividad o la conexión no está disponible.', 'error');
                 return;
             }
+            if ((activity.churchId || normalizeChurchId(activity.churchName || '')) !== getActiveChurchContext().churchId) {
+                showToast('No puedes registrar asistencia de una actividad de otra iglesia.', 'error');
+                closeActivityAttendanceModal();
+                return;
+            }
             try {
                 const participants = Array.isArray(activity.participants) ? activity.participants : [];
                 const attendance = {};
@@ -5500,7 +5517,11 @@
                     updatedAt: new Date().toISOString()
                 }, { merge: true });
                 const local = activities.find(item => item.id === activity.id);
-                if (local) local.attendance = attendance;
+                if (local) {
+                    local.attendance = attendance;
+                    local.churchId = getActiveChurchContext().churchId;
+                    local.churchName = getActiveChurchContext().churchName;
+                }
                 showToast('Asistencia guardada correctamente.', 'success');
                 renderActivityAttendance();
                 renderActivitiesList();
@@ -5989,7 +6010,10 @@
         // ==========================================
         function buildAttendanceHistoryRows() {
             const rows = [];
+            const activeChurchId = getActiveChurchContext().churchId;
             (Array.isArray(activities) ? activities : []).forEach(activity => {
+                const activityChurchId = activity.churchId || normalizeChurchId(activity.churchName || '');
+                if (activityChurchId !== activeChurchId) return;
                 const participants = Array.isArray(activity.participants) ? activity.participants : [];
                 const attendance = activity.attendance && typeof activity.attendance === 'object' ? activity.attendance : {};
                 participants.forEach((participant, index) => {
