@@ -2482,13 +2482,40 @@
 
             // 3. Escuchar Programaciones en Tiempo Real
             const schedulesCol = collection(db, 'artifacts', appId, 'public', 'data', 'ja_schedules');
-            onSnapshot(schedulesCol, (snapshot) => {
-                savedSchedules = snapshot.docs.map(d => d.data());
+            onSnapshot(schedulesCol, async (snapshot) => {
+                const allSchedules = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                const migrationWrites = [];
+                const migratedSchedules = allSchedules.map(schedule => {
+                    // Todas las programaciones existentes fueron creadas antes de la
+                    // separación por iglesias, por lo que pertenecen a Peniel.
+                    if (!schedule.churchId || !schedule.churchName) {
+                        const migrated = { ...schedule, churchId: normalizeChurchId('Peniel'), churchName: 'Peniel' };
+                        if (isAdmin() && schedule.id) {
+                            migrationWrites.push(setDoc(
+                                doc(db, 'artifacts', appId, 'public', 'data', 'ja_schedules', schedule.id),
+                                { churchId: migrated.churchId, churchName: migrated.churchName },
+                                { merge: true }
+                            ));
+                        }
+                        return migrated;
+                    }
+                    return schedule;
+                });
+                if (migrationWrites.length) await Promise.allSettled(migrationWrites);
+
+                const activeChurchId = getActiveChurchContext().churchId;
+                savedSchedules = migratedSchedules.filter(schedule =>
+                    (schedule.churchId || normalizeChurchId(schedule.churchName || '')) === activeChurchId
+                );
                 savedSchedules.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-                // Si el usuario está en modo consulta, mostrar automáticamente la última programación guardada
+
+                // Si el usuario está en modo consulta, mostrar automáticamente la última
+                // programación de la iglesia activa.
                 if (currentUserRole === 'viewer' && savedSchedules.length > 0) {
                     currentDraftSchedule = JSON.parse(JSON.stringify(savedSchedules[0]));
                     renderDraftSchedule();
+                } else if (currentUserRole === 'viewer' && savedSchedules.length === 0) {
+                    currentDraftSchedule = null;
                 }
                 refreshAllUI();
             }, (err) => console.error('Error programas nube:', err));
@@ -2557,8 +2584,14 @@
 
         async function syncScheduleToCloud(schedObj) {
             if (!cloudReady || !currentUser || !db) return;
-            const ref = doc(db, 'artifacts', appId, 'public', 'data', 'ja_schedules', schedObj.id);
-            await setDoc(ref, schedObj);
+            const context = getActiveChurchContext();
+            const safeSchedule = { ...schedObj };
+            if (!safeSchedule.churchId || !safeSchedule.churchName) {
+                safeSchedule.churchId = context.churchId;
+                safeSchedule.churchName = context.churchName;
+            }
+            const ref = doc(db, 'artifacts', appId, 'public', 'data', 'ja_schedules', safeSchedule.id);
+            await setDoc(ref, safeSchedule);
         }
 
         async function deleteScheduleFromCloud(schedId) {
@@ -2850,6 +2883,37 @@
             // Refrescar inmediatamente la base visible de miembros sin esperar
             // al siguiente evento de Firestore.
             if (cloudReady && db) {
+                const schedulesCol = collection(db, 'artifacts', appId, 'public', 'data', 'ja_schedules');
+                getDocs(schedulesCol).then(async snapshot => {
+                    const allSchedules = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                    const migrationWrites = [];
+                    const migratedSchedules = allSchedules.map(schedule => {
+                        if (!schedule.churchId || !schedule.churchName) {
+                            const migrated = { ...schedule, churchId: normalizeChurchId('Peniel'), churchName: 'Peniel' };
+                            if (isAdmin() && schedule.id) {
+                                migrationWrites.push(setDoc(
+                                    doc(db, 'artifacts', appId, 'public', 'data', 'ja_schedules', schedule.id),
+                                    { churchId: migrated.churchId, churchName: migrated.churchName },
+                                    { merge: true }
+                                ));
+                            }
+                            return migrated;
+                        }
+                        return schedule;
+                    });
+                    if (migrationWrites.length) await Promise.allSettled(migrationWrites);
+                    savedSchedules = migratedSchedules
+                        .filter(schedule => (schedule.churchId || normalizeChurchId(schedule.churchName || '')) === normalizeChurchId(activeChurch))
+                        .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+                    if (currentUserRole === 'viewer' && savedSchedules.length > 0) {
+                        currentDraftSchedule = JSON.parse(JSON.stringify(savedSchedules[0]));
+                    } else if (currentUserRole === 'viewer') {
+                        currentDraftSchedule = null;
+                    }
+                    renderSavedSchedules();
+                    renderDraftSchedule();
+                }).catch(err => console.error('Error al cambiar programaciones por iglesia:', err));
+
                 const membersCol = collection(db, 'artifacts', appId, 'public', 'data', 'ja_members');
                 getDocs(membersCol).then(snapshot => {
                     members = snapshot.docs
@@ -3824,7 +3888,16 @@
                 currentDraftSchedule.title = document.getElementById('prog-title').value.trim() || currentDraftSchedule.title;
             }
 
+            const context = getActiveChurchContext();
             const toSave = JSON.parse(JSON.stringify(currentDraftSchedule));
+            // Toda programación nueva o editada queda asociada a la iglesia activa.
+            // Si ya existe, conservamos su iglesia original (debe ser la activa).
+            toSave.churchId = toSave.churchId || context.churchId;
+            toSave.churchName = toSave.churchName || context.churchName;
+            if (toSave.churchId !== context.churchId) {
+                showToast('Esta programación pertenece a otra iglesia y no puede modificarse desde aquí.', 'error');
+                return;
+            }
             const existingIndex = savedSchedules.findIndex(s => s.id === toSave.id);
             if (existingIndex !== -1) {
                 savedSchedules[existingIndex] = toSave;
