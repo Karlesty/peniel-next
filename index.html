@@ -2863,7 +2863,10 @@
                         .filter(member => (member.churchId || normalizeChurchId(member.churchName)) === normalizeChurchId(activeChurch))
                         .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
                     refreshAllUI();
+                    loadActivitiesFromCloud().catch(err => console.error('Error al cambiar actividades por iglesia:', err));
                 }).catch(err => console.error('Error al cambiar iglesia activa:', err));
+            } else {
+                loadActivitiesFromCloud().catch(err => console.error('Error al cambiar actividades por iglesia:', err));
             }
 
             showToast(`Iglesia activa: ${activeChurch}`, 'success');
@@ -4987,7 +4990,7 @@
 
         async function saveActivityParticipants(activity) {
             const activityRef = doc(db, 'artifacts', appId, 'public', 'data', 'ja_activities', activity.id);
-            await setDoc(activityRef, { participants: Array.isArray(activity.participants) ? activity.participants : [], updatedAt: new Date().toISOString() }, { merge: true });
+            await setDoc(activityRef, { participants: Array.isArray(activity.participants) ? activity.participants : [], churchId: getActiveChurchContext().churchId, churchName: getActiveChurchContext().churchName, updatedAt: new Date().toISOString() }, { merge: true });
         }
 
         async function addExistingActivityParticipant(memberId) {
@@ -5065,7 +5068,9 @@
                 club: 'Ninguno', roles: [],
                 gmInvestitureStatus: '', gmWorksClub: '', gmClubRole: '',
                 clubClass: '', presentToday: false,
-                clubRoles: {}
+                clubRoles: {},
+                churchId: getActiveChurchContext().churchId,
+                churchName: getActiveChurchContext().churchName
             };
 
             try {
@@ -5319,6 +5324,8 @@
                 });
                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'ja_activities', activity.id), {
                     attendance,
+                    churchId: getActiveChurchContext().churchId,
+                    churchName: getActiveChurchContext().churchName,
                     updatedAt: new Date().toISOString()
                 }, { merge: true });
                 const local = activities.find(item => item.id === activity.id);
@@ -5413,11 +5420,22 @@
                 if (!db) return;
                 const activitiesRef = collection(db, 'artifacts', appId, 'public', 'data', 'ja_activities');
                 const snapshot = await getDocs(activitiesRef);
-                activities = snapshot.docs.map(item => ({
-                    id: item.id,
-                    ...item.data()
-                }));
+                const allActivities = snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
+                const migrationWrites = [];
+                const migratedActivities = allActivities.map(activity => {
+                    if (!activity.churchId || !activity.churchName) {
+                        const migrated = { ...activity, churchId: normalizeChurchId('Peniel'), churchName: 'Peniel' };
+                        if (isAdmin()) migrationWrites.push(setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'ja_activities', activity.id), { churchId: migrated.churchId, churchName: migrated.churchName }, { merge: true }));
+                        return migrated;
+                    }
+                    return activity;
+                });
+                if (migrationWrites.length) await Promise.allSettled(migrationWrites);
+                const activeChurchId = getActiveChurchContext().churchId;
+                activities = migratedActivities.filter(activity => (activity.churchId || normalizeChurchId(activity.churchName || '')) === activeChurchId);
+                activities.sort((a,b) => String(a.startDate||'').localeCompare(String(b.startDate||'')) || String(a.startTime||'').localeCompare(String(b.startTime||'')));
                 renderActivitiesList();
+                if (typeof renderAttendanceHistory === 'function') renderAttendanceHistory();
             } catch (error) {
                 console.error('Error cargando actividades:', error);
                 const container = document.getElementById('activities-list');
@@ -5563,7 +5581,7 @@
             }
         }
 
-        async function addActivityOrganizerToMembers(){if(!isAdmin())return;const ni=document.getElementById('activity-new-organizer-name'),bi=document.getElementById('activity-new-organizer-birthdate'),name=(ni?.value||'').trim(),birthDate=bi?.value||'';if(!name){showToast('Escribe el nombre completo.','error');return;}const ex=members.find(m=>String(m.name||'').trim().toLowerCase()===name.toLowerCase());if(ex){const r=document.getElementById('activity-responsible-initial'),o=document.getElementById('activity-organizers-initial');if(r&&!r.value.trim())r.value=ex.name;else if(o)o.value=o.value.trim()?o.value.trim()+', '+ex.name:ex.name;showToast('La persona ya existe en Miembros y fue seleccionada.','info');return;}if(!birthDate){showToast('Registra la fecha de nacimiento para agregar la persona.','error');return;}const m={id:'m_'+Date.now(),name,documentType:'',documentNumber:'',birthDate,phone:'',email:'',bloodType:'',eps:'',emergencyName:'',emergencyPhone:'',allergies:'Ninguna',baptized:false,baptismDate:'',gp:'',club:'Ninguno',roles:[],gmInvestitureStatus:'',gmWorksClub:'',gmClubRole:'',clubClass:'',presentToday:false,clubRoles:{}};try{members.unshift(m);await syncMemberToCloud(m);refreshActivityMembersDatalist();const r=document.getElementById('activity-responsible-initial'),o=document.getElementById('activity-organizers-initial');if(r&&!r.value.trim())r.value=name;else if(o)o.value=o.value.trim()?o.value.trim()+', '+name:name;ni.value='';bi.value='';refreshAllUI();showToast('Persona agregada a Miembros.','success')}catch(e){members=members.filter(x=>x.id!==m.id);console.error(e);showToast('No se pudo agregar la persona.','error')}}
+        async function addActivityOrganizerToMembers(){if(!isAdmin())return;const ni=document.getElementById('activity-new-organizer-name'),bi=document.getElementById('activity-new-organizer-birthdate'),name=(ni?.value||'').trim(),birthDate=bi?.value||'';if(!name){showToast('Escribe el nombre completo.','error');return;}const ex=members.find(m=>String(m.name||'').trim().toLowerCase()===name.toLowerCase());if(ex){const r=document.getElementById('activity-responsible-initial'),o=document.getElementById('activity-organizers-initial');if(r&&!r.value.trim())r.value=ex.name;else if(o)o.value=o.value.trim()?o.value.trim()+', '+ex.name:ex.name;showToast('La persona ya existe en Miembros y fue seleccionada.','info');return;}if(!birthDate){showToast('Registra la fecha de nacimiento para agregar la persona.','error');return;}const m={id:'m_'+Date.now(),name,documentType:'',documentNumber:'',birthDate,phone:'',email:'',bloodType:'',eps:'',emergencyName:'',emergencyPhone:'',allergies:'Ninguna',baptized:false,baptismDate:'',gp:'',club:'Ninguno',roles:[],gmInvestitureStatus:'',gmWorksClub:'',gmClubRole:'',clubClass:'',presentToday:false,clubRoles:{},churchId:getActiveChurchContext().churchId,churchName:getActiveChurchContext().churchName};try{members.unshift(m);await syncMemberToCloud(m);refreshActivityMembersDatalist();const r=document.getElementById('activity-responsible-initial'),o=document.getElementById('activity-organizers-initial');if(r&&!r.value.trim())r.value=name;else if(o)o.value=o.value.trim()?o.value.trim()+', '+name:name;ni.value='';bi.value='';refreshAllUI();showToast('Persona agregada a Miembros.','success')}catch(e){members=members.filter(x=>x.id!==m.id);console.error(e);showToast('No se pudo agregar la persona.','error')}}
 
         function editActivity(activityId) {
             if (!isAdmin()) {
@@ -5609,6 +5627,11 @@
 
         async function updateActivity() {
             if (!isAdmin() || !editingActivityId) return;
+            const editingActivity = activities.find(item => item.id === editingActivityId);
+            if (!editingActivity || (editingActivity.churchId || normalizeChurchId(editingActivity.churchName || '')) !== getActiveChurchContext().churchId) {
+                showToast('No puedes modificar una actividad de otra iglesia.', 'error');
+                return;
+            }
             const type = document.getElementById('activity-type-initial')?.value.trim();
             const name = document.getElementById('activity-name-initial')?.value.trim();
             const startDate = document.getElementById('activity-start-date-initial')?.value;
@@ -5647,6 +5670,8 @@
                     responsible: responsibleName ? {memberId: members.find(m=>String(m.name||'').trim().toLowerCase()===responsibleName.toLowerCase())?.id||'',name:responsibleName}:null,
                     organizers: organizerNames.map(name=>({memberId:members.find(m=>String(m.name||'').trim().toLowerCase()===name.toLowerCase())?.id||'',name})),
                     participants: Array.isArray(activities.find(item => item.id === editingActivityId)?.participants) ? activities.find(item => item.id === editingActivityId).participants : [],
+                    churchId: getActiveChurchContext().churchId,
+                    churchName: getActiveChurchContext().churchName,
                     updatedAt: new Date().toISOString()
                 };
                 const activityRef = doc(db, 'artifacts', appId, 'public', 'data', 'ja_activities', editingActivityId);
@@ -5674,6 +5699,10 @@
             }
             const activity = activities.find(item => item.id === activityId);
             if (!activity) return;
+            if ((activity.churchId || normalizeChurchId(activity.churchName || '')) !== getActiveChurchContext().churchId) {
+                showToast('Esta actividad pertenece a otra iglesia.', 'error');
+                return;
+            }
             if (!window.confirm(`¿Deseas eliminar la actividad "${activity.name || 'sin nombre'}"? Esta acción no se puede deshacer.`)) return;
 
             try {
@@ -5735,6 +5764,8 @@
                 responsible: responsibleName ? {memberId: members.find(m=>String(m.name||'').trim().toLowerCase()===responsibleName.toLowerCase())?.id||'',name:responsibleName}:null,
                 organizers: organizerNames.map(name=>({memberId:members.find(m=>String(m.name||'').trim().toLowerCase()===name.toLowerCase())?.id||'',name})),
                 participants: [],
+                churchId: getActiveChurchContext().churchId,
+                churchName: getActiveChurchContext().churchName,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
             };
