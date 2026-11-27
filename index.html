@@ -684,6 +684,7 @@
                     <span class="text-xs font-bold uppercase tracking-wider text-amber-600 bg-amber-50 px-3 py-1 rounded-full">Automatización Inteligente</span>
                     <h1 class="text-2xl font-extrabold text-slate-900 mt-2">Generador de Programaciones</h1>
                     <p class="text-slate-500 text-sm mt-1">Asigna roles automáticamente para Sociedad de Jóvenes (con Servicio de Canto) o Grupos Pequeños.</p>
+<div class="flex flex-wrap gap-2 mt-4"><button type="button" onclick="switchView('scheduler')" class="px-3 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold">Generador de Programaciones</button><button type="button" onclick="switchView('program-registration');renderProgramRegistration()" class="px-3 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold">Registro Programas Semanales</button></div>
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -791,7 +792,9 @@
             <!-- ========================================== -->
             <!-- VISTA 4: SECCIÓN DE CLUBES JUVENILES       -->
             <!-- ========================================== -->
-            <section id="view-clubs" class="view-section hidden space-y-6 fade-in">
+            <section id="view-program-registration" class="view-section hidden space-y-6 fade-in"><div class="bg-white p-6 rounded-2xl border border-slate-200"><h1 class="text-2xl font-extrabold text-slate-900">Registro Programas Semanales</h1><p class="text-slate-500 text-sm mt-1">Registra asistencia y participación de los miembros de la iglesia activa.</p><div class="flex flex-wrap gap-2 mt-4"><button onclick="switchView('scheduler')" class="px-3 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold">Generador</button><button onclick="exportProgramRegistrationToExcel()" class="px-3 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold">Excel</button><button onclick="printProgramRegistration()" class="px-3 py-2 rounded-xl bg-slate-800 text-white text-xs font-bold">PDF / Imprimir</button></div></div><div class="bg-white p-5 rounded-2xl border border-slate-200"><div class="grid md:grid-cols-3 gap-4"><div class="md:col-span-2"><label class="block text-xs font-bold mb-1">Programa semanal</label><select id="program-registration-schedule" onchange="selectProgramRegistrationSchedule(this.value)" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm"></select></div><div><label class="block text-xs font-bold mb-1">Iglesia activa</label><div id="program-registration-church" class="px-3 py-2.5 bg-emerald-50 rounded-xl text-sm font-bold">Peniel</div></div></div><div id="program-registration-summary" class="mt-3 text-xs text-slate-500"></div></div><div class="bg-white rounded-2xl border border-slate-200 overflow-hidden"><div class="p-5 border-b flex justify-between"><div><h2 class="font-extrabold">Asistencia y participación</h2><p class="text-xs text-slate-500">Todos los miembros de la iglesia activa.</p></div><button onclick="saveProgramRegistration()" class="admin-only px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-bold">Guardar registro</button></div><div class="overflow-x-auto"><table class="w-full min-w-[760px]"><thead class="bg-slate-50"><tr><th class="px-4 py-3 text-xs text-left">#</th><th class="px-4 py-3 text-xs text-left">Miembro</th><th class="px-4 py-3 text-xs text-left">Asistencia</th><th class="px-4 py-3 text-xs text-left">Participación</th><th class="px-4 py-3 text-xs text-left">Observación</th></tr></thead><tbody id="program-registration-body"></tbody></table></div><div id="program-registration-empty" class="hidden p-8 text-center text-sm text-slate-500"></div></div></section>
+
+<section id="view-clubs" class="view-section hidden space-y-6 fade-in">
                 <!-- Selector de Pestañas de Clubes -->
                 <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 bg-white p-2 rounded-2xl shadow-xs border border-slate-200/80">
                     <button onclick="selectClubTab('Ministerio JA')" id="tab-club-Ministerio JA" class="club-tab-btn py-3 px-4 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer">
@@ -2130,6 +2133,8 @@
         // Estado principal de la aplicación
         let members = [];
         let savedSchedules = [];
+        let programRegistrations = [];
+        let selectedProgramRegistrationScheduleId = "";
         let clubActivities = {};
         let currentDraftSchedule = null;
         let activeClubTab = 'Aventureros';
@@ -2520,6 +2525,10 @@
                 refreshAllUI();
             }, (err) => console.error('Error programas nube:', err));
 
+            // Registro Programas Semanales
+            const regCol = collection(db, 'artifacts', appId, 'public', 'data', 'ja_program_registrations');
+            onSnapshot(regCol, snap => { const ctx=getActiveChurchContext(); programRegistrations=snap.docs.map(d=>({id:d.id,...d.data()})).filter(r=>(r.churchId||normalizeChurchId(r.churchName||''))===ctx.churchId); if(!document.getElementById('view-program-registration')?.classList.contains('hidden')) renderProgramRegistration(); }, err=>console.error('Error registro programas:',err));
+
             // 4. Escuchar Actividades de Clubes en Tiempo Real
             const clubsRef = doc(db, 'artifacts', appId, 'public', 'data', 'ja_settings', 'clubs');
             onSnapshot(clubsRef, async (snap) => {
@@ -2796,6 +2805,7 @@
             renderDashboard();
             renderMembersTable();
             renderSavedSchedules();
+            renderProgramRegistration();
             renderClubSection();
         }
 
@@ -6320,6 +6330,12 @@
             window.print();
         }
 
+        function renderProgramRegistration(){const sel=document.getElementById('program-registration-schedule'),body=document.getElementById('program-registration-body'),empty=document.getElementById('program-registration-empty'),church=document.getElementById('program-registration-church'),summary=document.getElementById('program-registration-summary');if(!sel||!body)return;const ctx=getActiveChurchContext();if(church)church.textContent=ctx.churchName;const schedules=[...savedSchedules].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));if(!schedules.length){sel.innerHTML='<option value="">No hay programaciones</option>';body.innerHTML='';empty.classList.remove('hidden');empty.textContent='Primero cree una programación en el Generador.';return;}if(!selectedProgramRegistrationScheduleId||!schedules.some(x=>x.id===selectedProgramRegistrationScheduleId))selectedProgramRegistrationScheduleId=schedules[0].id;sel.innerHTML=schedules.map(x=>`<option value="${x.id}">${formatDateSpanish(x.date||'')} — ${x.type||''}${x.gp?' — '+x.gp:''}${x.title?' — '+x.title:''}</option>`).join('');sel.value=selectedProgramRegistrationScheduleId;const sch=schedules.find(x=>x.id===selectedProgramRegistrationScheduleId);if(summary)summary.textContent=`${sch.type||'Programa'} · ${formatDateSpanish(sch.date||'')}`;const ms=(members||[]).filter(isMemberInActiveChurch).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||'')));if(!ms.length){body.innerHTML='';empty.classList.remove('hidden');empty.textContent='No hay miembros registrados en la iglesia activa.';return;}empty.classList.add('hidden');body.innerHTML=ms.map((m,i)=>{const r=programRegistrations.find(x=>x.scheduleId===sch.id&&x.memberId===m.id)||{};return `<tr class="border-b"><td class="px-4 py-3 text-xs">${i+1}</td><td class="px-4 py-3 text-sm font-bold">${m.name||''}</td><td class="px-4 py-3"><select ${isAdmin()?'':'disabled'} data-reg="attendance" data-member="${m.id}" class="px-2 py-2 border rounded-lg text-xs"><option ${(!r.attendance||r.attendance==='Pendiente')?'selected':''}>Pendiente</option><option ${r.attendance==='Presente'?'selected':''}>Presente</option><option ${r.attendance==='Ausente'?'selected':''}>Ausente</option><option ${r.attendance==='Justificado'?'selected':''}>Justificado</option></select></td><td class="px-4 py-3"><select ${isAdmin()?'':'disabled'} data-reg="participation" data-member="${m.id}" class="px-2 py-2 border rounded-lg text-xs"><option ${(!r.participation||r.participation==='No aplica')?'selected':''}>No aplica</option><option ${r.participation==='Participó'?'selected':''}>Participó</option><option ${r.participation==='No participó'?'selected':''}>No participó</option></select></td><td class="px-4 py-3"><input ${isAdmin()?'':'disabled'} data-reg="observation" data-member="${m.id}" value="${String(r.observation||'').replace(/"/g,'&quot;')}" class="px-2 py-2 border rounded-lg text-xs w-full"></td></tr>`}).join('');}
+function selectProgramRegistrationSchedule(id){selectedProgramRegistrationScheduleId=id||'';renderProgramRegistration();}
+async function saveProgramRegistration(){if(!isAdmin()||!selectedProgramRegistrationScheduleId)return;const sch=savedSchedules.find(x=>x.id===selectedProgramRegistrationScheduleId);if(!sch)return;const ctx=getActiveChurchContext();const writes=[];document.querySelectorAll('#program-registration-body tr').forEach(row=>{const id=row.querySelector('[data-member]')?.dataset.member;if(!id)return;const get=f=>row.querySelector(`[data-reg="${f}"][data-member="${id}"]`);const data={id:`${sch.id}__${id}`,scheduleId:sch.id,memberId:id,memberName:(members.find(m=>m.id===id)||{}).name||'',attendance:get('attendance')?.value||'Pendiente',participation:get('participation')?.value||'No aplica',observation:get('observation')?.value||'',date:sch.date||'',type:sch.type||'',churchId:ctx.churchId,churchName:ctx.churchName,updatedAt:new Date().toISOString()};const i=programRegistrations.findIndex(x=>x.id===data.id);if(i>=0)programRegistrations[i]=data;else programRegistrations.push(data);writes.push(setDoc(doc(db,'artifacts',appId,'public','data','ja_program_registrations',data.id),data));});try{await Promise.all(writes);showToast('Registro guardado correctamente.','success');renderProgramRegistration();}catch(e){console.error(e);showToast('No se pudo guardar el registro.','error');}}
+function exportProgramRegistrationToExcel(){const sch=savedSchedules.find(x=>x.id===selectedProgramRegistrationScheduleId);if(!sch){showToast('Seleccione un programa.','error');return;}const rows=(members||[]).filter(isMemberInActiveChurch).map(m=>{const r=programRegistrations.find(x=>x.scheduleId===sch.id&&x.memberId===m.id)||{};return[m.name||'',r.attendance||'Pendiente',r.participation||'No aplica',r.observation||''];});downloadCsv(`registro_programa_${sch.date||'fecha'}.csv`,['Miembro','Asistencia','Participación','Observación'],rows);}
+function printProgramRegistration(){const sch=savedSchedules.find(x=>x.id===selectedProgramRegistrationScheduleId);if(!sch){showToast('Seleccione un programa.','error');return;}window.print();}
+
         Object.assign(window, {
             switchView,
             openMemberModal,
@@ -6339,6 +6355,11 @@
             loadSavedScheduleIntoEditor,
             deleteSavedSchedule,
             copyScheduleToWhatsApp,
+            renderProgramRegistration,
+            selectProgramRegistrationSchedule,
+            saveProgramRegistration,
+            exportProgramRegistrationToExcel,
+            printProgramRegistration,
             selectClubTab,
             toggleClubAttendance,
             markAllClubAttendance,
