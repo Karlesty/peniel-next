@@ -4364,7 +4364,12 @@
             };
 
             const getClubDirectorName = (clubName) => {
-                const director = members.find(m => m.club === clubName && m.clubRoles && m.clubRoles[clubName] === 'Director(a)');
+                const context = getActiveChurchContext();
+                const director = members.find(m =>
+                    isMemberInActiveChurch(m) &&
+                    m.clubRoles &&
+                    m.clubRoles[clubName] === 'Director(a)'
+                );
                 return director ? director.name : 'Sin director registrado';
             };
 
