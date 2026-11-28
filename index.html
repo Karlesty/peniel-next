@@ -84,7 +84,19 @@
 .nav-btn > i:first-child, .nav-btn div > i:first-child {
   flex-shrink: 0;
 }
-</style></head>
+</style><style id="peniel-sidebar-scroll-fix">
+/* Etapa 18 - desplazamiento independiente del menú lateral */
+@media (min-width: 1024px){
+  #sidebar{overflow-y:auto !important; overflow-x:hidden !important; justify-content:flex-start !important; scrollbar-width:auto; overscroll-behavior:contain;}
+  #sidebar > div:first-child{min-height:max-content;}
+  #main-nav{overflow:visible !important; flex-shrink:0;}
+}
+#sidebar::-webkit-scrollbar{width:10px;}
+#sidebar::-webkit-scrollbar-track{background:#0f172a;}
+#sidebar::-webkit-scrollbar-thumb{background:#475569;border-radius:999px;border:2px solid #0f172a;}
+#sidebar::-webkit-scrollbar-thumb:hover{background:#64748b;}
+</style>
+</head>
 <body class="bg-slate-50 text-slate-800 font-sans antialiased selection:bg-blue-600 selection:text-white pb-20 lg:pb-0">
 <!-- ========================================================== -->
 <!-- PANTALLA DE ACCESO (DOS PERFILES: ADMIN / CONSULTA)        -->
@@ -249,6 +261,10 @@
 <button class="nav-btn w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-white transition-all" data-view="members">
 <i class="fas fa-users w-5 text-center"></i>
 <span>Base de Datos (Miembros)</span>
+</button>
+<button class="nav-btn w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-white transition-all" data-view="admin-settings">
+<i class="fas fa-gear w-5 text-center"></i>
+<span>Configuración</span>
 </button>
 <button class="nav-btn w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-white transition-all" data-view="district-structure">
 <i class="fas fa-sitemap w-5 text-center"></i>
@@ -637,6 +653,39 @@
 <!-- ========================================== -->
 <!-- VISTA: DISTRITO E IGLESIAS                    -->
 <!-- ========================================== -->
+<section class="view-section hidden space-y-6 fade-in" id="view-admin-settings">
+<div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <span class="text-xs font-bold uppercase tracking-wider text-slate-700 bg-slate-100 px-3 py-1 rounded-full">Etapa 18</span>
+      <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2">Configuración y administración</h1>
+      <p class="text-slate-500 text-sm mt-1">Administra la identidad de la aplicación y consulta el estado de los permisos.</p>
+    </div>
+    <div class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-bold" id="admin-settings-role-badge"><i class="fas fa-shield-halved"></i><span>Comprobando permisos...</span></div>
+  </div>
+</div>
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+  <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80">
+    <div class="flex items-center gap-3 mb-5"><div class="w-11 h-11 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center"><i class="fas fa-palette"></i></div><div><h2 class="font-extrabold text-slate-900">Identidad de Peniel Next</h2><p class="text-xs text-slate-500">Nombre, lema y logo que se muestran en la aplicación.</p></div></div>
+    <div class="space-y-4">
+      <div><label class="block text-xs font-bold text-slate-600 mb-2">Nombre de la aplicación</label><input id="admin-app-name" maxlength="80" class="admin-setting-input w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm font-semibold" placeholder="Peniel Next"></div>
+      <div><label class="block text-xs font-bold text-slate-600 mb-2">Lema</label><input id="admin-app-tagline" maxlength="160" class="admin-setting-input w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm" placeholder="La próxima generación con propósito."></div>
+      <div><label class="block text-xs font-bold text-slate-600 mb-2">Logo</label><input id="admin-app-logo-file" type="file" accept="image/png,image/jpeg,image/webp" class="admin-setting-input block w-full text-sm text-slate-600 file:mr-3 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:bg-slate-100 file:text-slate-700 file:font-semibold"><p class="text-[11px] text-slate-400 mt-1">PNG, JPG o WEBP. Se guarda en la configuración de Firebase.</p></div>
+      <div class="flex items-center gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200"><div id="admin-logo-preview" class="w-16 h-16 rounded-xl bg-slate-900 flex items-center justify-center overflow-hidden shrink-0"></div><div><p class="text-xs font-bold text-slate-700">Vista previa</p><p class="text-xs text-slate-500 mt-1">La identidad actual de la aplicación.</p></div></div>
+      <button type="button" class="admin-only inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl" onclick="saveAdminBrandSettings()"><i class="fas fa-cloud-arrow-up"></i> Guardar configuración</button>
+    </div>
+  </div>
+  <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80">
+    <div class="flex items-center gap-3 mb-5"><div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center"><i class="fas fa-shield-halved"></i></div><div><h2 class="font-extrabold text-slate-900">Acceso y permisos</h2><p class="text-xs text-slate-500">Estado de la sesión actual y nivel de acceso.</p></div></div>
+    <div class="space-y-3" id="admin-access-status"></div>
+    <div class="mt-5 p-4 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900"><strong>Seguridad:</strong> los permisos reales siguen controlados por las reglas de Firebase. Esta pantalla no puede convertir un usuario de consulta en administrador.</div>
+  </div>
+</div>
+<div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80">
+  <div class="flex items-center gap-3 mb-4"><div class="w-11 h-11 rounded-xl bg-violet-50 text-violet-700 flex items-center justify-center"><i class="fas fa-sitemap"></i></div><div><h2 class="font-extrabold text-slate-900">Administración territorial</h2><p class="text-xs text-slate-500">La gestión de Distrito e Iglesias permanece en su módulo independiente.</p></div></div>
+  <button type="button" onclick="switchView('district-structure')" class="inline-flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold rounded-xl"><i class="fas fa-church"></i> Gestionar Distrito e Iglesias</button>
+</div>
+</section>
 <section class="view-section hidden space-y-6 fade-in" id="view-district-structure">
 <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80">
 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -3372,6 +3421,61 @@
             const church=document.getElementById('reports-active-church'); if(church) church.textContent=ctx.churchName;
         }
 
+        function renderAdminSettings() {
+            const roleBadge = document.getElementById('admin-settings-role-badge');
+            const access = document.getElementById('admin-access-status');
+            const name = document.getElementById('admin-app-name');
+            const tagline = document.getElementById('admin-app-tagline');
+            const preview = document.getElementById('admin-logo-preview');
+            if (!roleBadge || !access) return;
+            const admin = isAdmin();
+            roleBadge.className = `inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-bold ${admin ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-slate-100 text-slate-700 border-slate-200'}`;
+            roleBadge.innerHTML = `<i class="fas ${admin ? 'fa-user-shield' : 'fa-eye'}"></i><span>${admin ? 'Administrador' : 'Usuario de consulta'}</span>`;
+            if (name) name.value = cloudAppBrand.appName || 'Peniel Next';
+            if (tagline) tagline.value = cloudAppBrand.tagline || 'La próxima generación con propósito.';
+            if (preview) preview.innerHTML = cloudAppBrand.logoDataUrl ? `<img src="${cloudAppBrand.logoDataUrl}" alt="Logo" class="w-full h-full object-cover">` : PENIEL_NEXT_ICON_SVG;
+            document.querySelectorAll('.admin-setting-input').forEach(el => el.disabled = !admin);
+            const uid = currentUser?.uid || 'No disponible';
+            access.innerHTML = `
+              <div class="flex items-center justify-between gap-3 p-4 rounded-xl bg-slate-50 border border-slate-200"><span class="text-xs font-bold text-slate-500">Rol actual</span><span class="text-sm font-extrabold text-slate-900">${admin ? 'Administrador' : 'Usuario de consulta'}</span></div>
+              <div class="flex items-center justify-between gap-3 p-4 rounded-xl bg-slate-50 border border-slate-200"><span class="text-xs font-bold text-slate-500">Sesión Firebase</span><span class="text-sm font-extrabold ${currentUser ? 'text-emerald-700' : 'text-red-600'}">${currentUser ? 'Autenticada' : 'No autenticada'}</span></div>
+              <div class="p-4 rounded-xl bg-slate-50 border border-slate-200"><span class="text-xs font-bold text-slate-500 block mb-1">Identificador de sesión</span><span class="text-xs font-mono text-slate-700 break-all">${uid}</span></div>`;
+        }
+
+        async function saveAdminBrandSettings() {
+            if (!isAdmin()) { showToast('Solo el administrador puede cambiar la configuración.', 'error'); return; }
+            if (!cloudReady || !db || !currentUser) { showToast('La sesión en la nube no está disponible.', 'error'); return; }
+            const name = String(document.getElementById('admin-app-name')?.value || '').trim() || 'Peniel Next';
+            const tagline = String(document.getElementById('admin-app-tagline')?.value || '').trim() || 'La próxima generación con propósito.';
+            const file = document.getElementById('admin-app-logo-file')?.files?.[0];
+            const save = async (logoDataUrl) => {
+                if (logoDataUrl && logoDataUrl.length > 900000) { showToast('El logo es demasiado grande. Usa una imagen más pequeña.', 'error'); return; }
+                try {
+                    const ref = doc(db, 'artifacts', appId, 'public', 'data', 'ja_settings', 'main');
+                    await setDoc(ref, { appName: name, tagline, logoDataUrl: logoDataUrl || cloudAppBrand.logoDataUrl || '', updatedAt: new Date().toISOString() }, { merge: true });
+                    cloudAppBrand = { appName: name, tagline, logoDataUrl: logoDataUrl || cloudAppBrand.logoDataUrl || '' };
+                    applyBrandingToUI();
+                    renderAdminSettings();
+                    showToast('Configuración guardada correctamente.', 'success');
+                } catch (err) { console.error(err); showToast('No fue posible guardar la configuración.', 'error'); }
+            };
+            if (!file) { await save(''); return; }
+            const reader = new FileReader();
+            reader.onload = () => save(String(reader.result || ''));
+            reader.onerror = () => showToast('No fue posible leer el logo.', 'error');
+            reader.readAsDataURL(file);
+        }
+
+        document.addEventListener('change', (event) => {
+            if (event.target?.id !== 'admin-app-logo-file') return;
+            const file = event.target.files?.[0];
+            const preview = document.getElementById('admin-logo-preview');
+            if (!file || !preview) return;
+            const reader = new FileReader();
+            reader.onload = () => { preview.innerHTML = `<img src="${String(reader.result || '')}" alt="Vista previa del logo" class="w-full h-full object-cover">`; };
+            reader.readAsDataURL(file);
+        });
+
         function switchView(viewName, clubName = null) {
             // Ocultar todas las vistas
             document.querySelectorAll('.view-section').forEach(sec => sec.classList.add('hidden'));
@@ -3397,6 +3501,9 @@
             }
             if (viewName === 'dashboard') {
                 renderDashboard();
+            }
+            if (viewName === 'admin-settings') {
+                renderAdminSettings();
             }
             if (viewName === 'reports') {
                 renderReportsHub();
@@ -7149,7 +7256,9 @@ function printProgramRegistration(){const sch=savedSchedules.find(x=>x.id===sele
             removeDistrictChurch,
             saveDistrictStructure,
             loadDistrictStructure,
-            renderDistrictStructure
+            renderDistrictStructure,
+            renderAdminSettings,
+            saveAdminBrandSettings
         });
 
         // Advertencia nativa del navegador al recargar, cerrar o abandonar la página.
@@ -7188,5 +7297,21 @@ function printProgramRegistration(){const sch=savedSchedules.find(x=>x.id===sele
 </div>
 </div>
 </div>
-<script>\n// Etapa 12: iconos uniformes para botones generados dinámicamente.\n(function(){\n  const iconRules = [\n    [/^Nueva actividad/i,'fa-plus'],\n    [/^Guardar(?:\s|$)/i,'fa-floppy-disk'],\n    [/^Editar(?:\s|$)/i,'fa-pen-to-square'],\n    [/^Eliminar(?:\s|$)/i,'fa-trash-can'],\n    [/^Borrar todo/i,'fa-trash-can'],\n    [/^Buscar/i,'fa-magnifying-glass'],\n    [/^Limpiar/i,'fa-broom'],\n    [/^Filtrar/i,'fa-filter'],\n    [/^Detalles?/i,'fa-eye'],\n    [/^Ver participantes/i,'fa-users'],\n    [/^Exportar/i,'fa-file-export'],\n    [/^Imprimir/i,'fa-print'],\n    [/^Descargar/i,'fa-download'],\n    [/^Cerrar/i,'fa-xmark'],\n    [/^Cancelar/i,'fa-xmark'],\n    [/^Confirmar/i,'fa-check'],\n    [/^Añadir/i,'fa-plus'],\n    [/^Nuevo/i,'fa-plus'],\n    [/^Guardar y Aplicar/i,'fa-check'],\n    [/^Cambiar/i,'fa-right-left'],\n    [/^Hoy$/i,'fa-calendar-day'],\n  ];\n  function decorate(root){\n    if(!root || !root.querySelectorAll) return;\n    root.querySelectorAll('button').forEach(btn=>{\n      if(btn.querySelector('i')) return;\n      const text=(btn.textContent||'').trim().replace(/\\s+/g,' ');\n      if(!text) return;\n      const rule=iconRules.find(([rx])=>rx.test(text));\n      if(!rule) return;\n      const i=document.createElement('i');\n      i.className='fas '+rule[1]+' mr-1';\n      btn.insertBefore(i,btn.firstChild);\n    });\n  }\n  document.addEventListener('DOMContentLoaded',()=>{\n    decorate(document);\n    const observer=new MutationObserver(muts=>muts.forEach(m=>m.addedNodes.forEach(n=>{\n      if(n.nodeType===1) decorate(n);\n    })));\n    observer.observe(document.body,{childList:true,subtree:true});\n  });\n})();\n</script></body>
+<script>\n// Etapa 12: iconos uniformes para botones generados dinámicamente.\n(function(){\n  const iconRules = [\n    [/^Nueva actividad/i,'fa-plus'],\n    [/^Guardar(?:\s|$)/i,'fa-floppy-disk'],\n    [/^Editar(?:\s|$)/i,'fa-pen-to-square'],\n    [/^Eliminar(?:\s|$)/i,'fa-trash-can'],\n    [/^Borrar todo/i,'fa-trash-can'],\n    [/^Buscar/i,'fa-magnifying-glass'],\n    [/^Limpiar/i,'fa-broom'],\n    [/^Filtrar/i,'fa-filter'],\n    [/^Detalles?/i,'fa-eye'],\n    [/^Ver participantes/i,'fa-users'],\n    [/^Exportar/i,'fa-file-export'],\n    [/^Imprimir/i,'fa-print'],\n    [/^Descargar/i,'fa-download'],\n    [/^Cerrar/i,'fa-xmark'],\n    [/^Cancelar/i,'fa-xmark'],\n    [/^Confirmar/i,'fa-check'],\n    [/^Añadir/i,'fa-plus'],\n    [/^Nuevo/i,'fa-plus'],\n    [/^Guardar y Aplicar/i,'fa-check'],\n    [/^Cambiar/i,'fa-right-left'],\n    [/^Hoy$/i,'fa-calendar-day'],\n  ];\n  function decorate(root){\n    if(!root || !root.querySelectorAll) return;\n    root.querySelectorAll('button').forEach(btn=>{\n      if(btn.querySelector('i')) return;\n      const text=(btn.textContent||'').trim().replace(/\\s+/g,' ');\n      if(!text) return;\n      const rule=iconRules.find(([rx])=>rx.test(text));\n      if(!rule) return;\n      const i=document.createElement('i');\n      i.className='fas '+rule[1]+' mr-1';\n      btn.insertBefore(i,btn.firstChild);\n    });\n  }\n  document.addEventListener('DOMContentLoaded',()=>{\n    decorate(document);\n    const observer=new MutationObserver(muts=>muts.forEach(m=>m.addedNodes.forEach(n=>{\n      if(n.nodeType===1) decorate(n);\n    })));\n    observer.observe(document.body,{childList:true,subtree:true});\n  });\n})();\n</script><script id="peniel-sidebar-scroll-js">
+(function(){
+  function initSidebarScroll(){
+    const sidebar=document.getElementById('sidebar');
+    if(!sidebar || sidebar.dataset.scrollFix==='1') return;
+    sidebar.dataset.scrollFix='1';
+    sidebar.addEventListener('wheel',function(e){
+      if(window.innerWidth < 1024) return;
+      const canScroll=sidebar.scrollHeight>sidebar.clientHeight;
+      if(canScroll){ e.preventDefault(); sidebar.scrollTop += e.deltaY; }
+    },{passive:false});
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',initSidebarScroll);
+  else initSidebarScroll();
+})();
+</script>
+</body>
 </html>
