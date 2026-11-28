@@ -691,6 +691,25 @@
   <button type="button" class="admin-only inline-flex items-center gap-2 px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold rounded-xl" onclick="downloadActiveChurchBackup()"><i class="fas fa-file-arrow-down"></i> Descargar respaldo JSON</button>
   <p class="text-[11px] text-slate-400 mt-3">Incluye miembros, programaciones, registro de programas, actividades, finanzas, presupuestos y configuración territorial.</p>
 </div>
+
+<div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80">
+  <div class="flex items-center gap-3 mb-4">
+    <div class="w-11 h-11 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center"><i class="fas fa-database"></i></div>
+    <div><h2 class="font-extrabold text-slate-900">Restauración segura</h2><p class="text-xs text-slate-500">Valida un respaldo JSON y recupera sus datos en la iglesia activa sin borrar información existente.</p></div>
+  </div>
+  <div class="p-4 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-900 mb-4">
+    <strong>Iglesia activa:</strong> <span id="restore-active-church">Peniel</span>. El archivo debe pertenecer a esta misma iglesia. La restauración agrega o actualiza registros; <strong>no elimina</strong> los datos actuales.
+  </div>
+  <div class="grid md:grid-cols-[1fr_auto] gap-3 items-end">
+    <div>
+      <label class="block text-xs font-bold text-slate-600 mb-2" for="restore-backup-file">Archivo de respaldo JSON</label>
+      <input id="restore-backup-file" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm" type="file" accept="application/json,.json" onchange="previewBackupFile(this)">
+    </div>
+    <button type="button" class="admin-only inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl" onclick="restoreActiveChurchBackup()"><i class="fas fa-cloud-arrow-up"></i> Restaurar respaldo</button>
+  </div>
+  <div id="restore-backup-preview" class="hidden mt-4 p-4 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-700"></div>
+  <p class="text-[11px] text-slate-400 mt-3">Por seguridad, solo se aceptan respaldos de Peniel Next y de la misma iglesia activa. La restauración requiere sesión de administrador.</p>
+</div>
 </section>
 <section class="view-section hidden space-y-6 fade-in" id="view-district-structure">
 <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80">
@@ -3484,6 +3503,95 @@
             reader.readAsDataURL(file);
         });
 
+        let pendingBackupRestore = null;
+
+        function renderRestoreBackupContext() {
+            const el = document.getElementById('restore-active-church');
+            if (el) el.textContent = getActiveChurchContext().churchName;
+        }
+
+        function previewBackupFile(input) {
+            const preview = document.getElementById('restore-backup-preview');
+            pendingBackupRestore = null;
+            if (!preview) return;
+            const file = input?.files?.[0];
+            if (!file) { preview.classList.add('hidden'); preview.innerHTML = ''; return; }
+            const reader = new FileReader();
+            reader.onload = () => {
+                try {
+                    const backup = JSON.parse(String(reader.result || ''));
+                    const ctx = getActiveChurchContext();
+                    const backupChurch = backup?.activeChurch?.churchName || '';
+                    const sameChurch = normalizeChurchId(backupChurch) === ctx.churchId;
+                    const valid = backup?.app === 'Peniel Next' && Array.isArray(backup?.data?.members) && Array.isArray(backup?.data?.activities) && Array.isArray(backup?.data?.schedules);
+                    if (!valid) throw new Error('El archivo no tiene la estructura de respaldo de Peniel Next.');
+                    if (!sameChurch) throw new Error(`El respaldo pertenece a "${backupChurch || 'una iglesia no identificada'}" y la iglesia activa es "${ctx.churchName}".`);
+                    pendingBackupRestore = backup;
+                    const counts = {
+                        members: backup.data.members.length,
+                        schedules: backup.data.schedules.length,
+                        programRegistrations: Array.isArray(backup.data.programRegistrations) ? backup.data.programRegistrations.length : 0,
+                        activities: backup.data.activities.length,
+                        finances: Array.isArray(backup.data.finances) ? backup.data.finances.length : 0,
+                        budgets: Array.isArray(backup.data.financeBudgets) ? backup.data.financeBudgets.length : 0
+                    };
+                    preview.className = 'mt-4 p-4 rounded-xl border border-emerald-200 bg-emerald-50 text-xs text-emerald-900';
+                    preview.innerHTML = `<div class="font-extrabold mb-2"><i class="fas fa-circle-check mr-1"></i> Respaldo válido</div><div class="grid grid-cols-2 sm:grid-cols-3 gap-2"><span>Miembros: <strong>${counts.members}</strong></span><span>Programaciones: <strong>${counts.schedules}</strong></span><span>Registros: <strong>${counts.programRegistrations}</strong></span><span>Actividades: <strong>${counts.activities}</strong></span><span>Finanzas: <strong>${counts.finances}</strong></span><span>Presupuestos: <strong>${counts.budgets}</strong></span></div>`;
+                } catch (err) {
+                    preview.className = 'mt-4 p-4 rounded-xl border border-red-200 bg-red-50 text-xs text-red-800';
+                    preview.innerHTML = `<div class="font-extrabold"><i class="fas fa-triangle-exclamation mr-1"></i> No se puede restaurar este archivo</div><p class="mt-1">${String(err.message || 'Archivo inválido')}</p>`;
+                }
+                preview.classList.remove('hidden');
+            };
+            reader.onerror = () => { preview.className='mt-4 p-4 rounded-xl border border-red-200 bg-red-50 text-xs text-red-800'; preview.textContent='No fue posible leer el archivo.'; preview.classList.remove('hidden'); };
+            reader.readAsText(file);
+        }
+
+        async function restoreActiveChurchBackup() {
+            if (!isAdmin()) { showToast('Solo el administrador puede restaurar respaldos.', 'error'); return; }
+            if (!cloudReady || !db || !currentUser) { showToast('La sesión en la nube no está disponible.', 'error'); return; }
+            if (!pendingBackupRestore) { showToast('Seleccione primero un respaldo válido.', 'error'); return; }
+            const ctx = getActiveChurchContext();
+            const backupChurch = pendingBackupRestore?.activeChurch?.churchName || '';
+            if (normalizeChurchId(backupChurch) !== ctx.churchId) { showToast('El respaldo no corresponde a la iglesia activa.', 'error'); return; }
+            const ok = window.confirm(`Se restaurarán los datos de ${ctx.churchName}. Los registros existentes con el mismo ID serán actualizados y los demás se agregarán. No se eliminará información.\n\n¿Desea continuar?`);
+            if (!ok) return;
+            const groups = [
+                ['ja_members', 'members'],
+                ['ja_schedules', 'schedules'],
+                ['ja_program_registrations', 'programRegistrations'],
+                ['ja_finances', 'finances'],
+                ['ja_finance_budgets', 'financeBudgets'],
+                ['ja_activities', 'activities']
+            ];
+            let total = 0;
+            try {
+                for (const [collectionName, key] of groups) {
+                    const rows = Array.isArray(pendingBackupRestore.data?.[key]) ? pendingBackupRestore.data[key] : [];
+                    for (let start = 0; start < rows.length; start += 450) {
+                        const batch = writeBatch(db);
+                        rows.slice(start, start + 450).forEach(row => {
+                            if (!row?.id) return;
+                            const clean = { ...row, churchId: ctx.churchId, churchName: ctx.churchName, restoredAt: new Date().toISOString() };
+                            delete clean.id;
+                            batch.set(doc(db, 'artifacts', appId, 'public', 'data', collectionName, row.id), clean, { merge: true });
+                        });
+                        await batch.commit();
+                        total += rows.slice(start, start + 450).filter(row => row?.id).length;
+                    }
+                }
+                showToast(`Restauración completada: ${total} registros procesados.`, 'success');
+                const input = document.getElementById('restore-backup-file');
+                if (input) input.value = '';
+                pendingBackupRestore = null;
+                const preview = document.getElementById('restore-backup-preview');
+                if (preview) { preview.classList.add('hidden'); preview.innerHTML=''; }
+            } catch (err) {
+                console.error('Error restaurando respaldo:', err);
+                showToast('La restauración se detuvo por un error. Los registros ya procesados permanecen guardados.', 'error');
+            }
+        }
+
         async function downloadActiveChurchBackup() {
             if (!isAdmin()) { showToast('Solo el administrador puede generar respaldos.', 'error'); return; }
             if (!cloudReady || !db || !currentUser) { showToast('La sesión en la nube no está disponible.', 'error'); return; }
@@ -3563,6 +3671,7 @@
             }
             if (viewName === 'admin-settings') {
                 renderAdminSettings();
+                renderRestoreBackupContext();
             }
             if (viewName === 'reports') {
                 renderReportsHub();
@@ -7318,7 +7427,10 @@ function printProgramRegistration(){const sch=savedSchedules.find(x=>x.id===sele
             renderDistrictStructure,
             renderAdminSettings,
             saveAdminBrandSettings,
-            downloadActiveChurchBackup
+            downloadActiveChurchBackup,
+            previewBackupFile,
+            restoreActiveChurchBackup,
+            renderRestoreBackupContext
         });
 
         // Advertencia nativa del navegador al recargar, cerrar o abandonar la página.
