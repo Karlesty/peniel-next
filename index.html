@@ -64,48 +64,7 @@
         body.role-viewer .admin-only {
             display: none !important;
         }
-    
-
-/* ==========================================================
-   SIDEBAR: MENÚ VERTICAL CON DESPLAZAMIENTO
-   Permite recorrer todos los Ministerios Juveniles con la
-   rueda del mouse/touchpad o usando la barra de desplazamiento.
-   ========================================================== */
-#sidebar {
-  overflow: hidden;
-}
-#sidebar > div:first-child {
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 auto;
-}
-#main-nav {
-  min-height: 0;
-  flex: 1 1 auto;
-  overflow-y: auto;
-  overflow-x: hidden;
-  scrollbar-width: auto;
-  scrollbar-color: #475569 #0f172a;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-}
-#main-nav::-webkit-scrollbar {
-  width: 10px;
-}
-#main-nav::-webkit-scrollbar-track {
-  background: #0f172a;
-  border-left: 1px solid #1e293b;
-}
-#main-nav::-webkit-scrollbar-thumb {
-  background: #475569;
-  border-radius: 999px;
-  border: 2px solid #0f172a;
-}
-#main-nav::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
-}
-</style>
+    </style>
 <style>
 @media print {
   body * { visibility: hidden !important; }
@@ -281,7 +240,7 @@
                     </button>
 </div>
 <!-- Menú de Navegación -->
-<nav class="p-4 space-y-1.5" id="main-nav" aria-label="Menú principal y Ministerios Juveniles">
+<nav class="p-4 space-y-1.5" id="main-nav">
 <p class="px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-2">Principal</p>
 <button class="nav-btn w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-all bg-blue-600 text-white shadow-md shadow-blue-900/40" data-view="dashboard">
 <i class="fas fa-chart-pie w-5 text-center"></i>
@@ -456,6 +415,54 @@
 </div>
 </div>
 </div>
+<!-- Resumen rápido de la iglesia activa -->
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5">
+<div class="bg-white p-5 rounded-2xl shadow-xs border border-emerald-200/70 hover:border-emerald-300 transition-all">
+<div class="flex items-center justify-between gap-3">
+<div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-lg"><i class="fas fa-church"></i></div>
+<span class="text-[10px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-1 rounded-lg">Iglesia activa</span>
+</div>
+<p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mt-4">Trabajando en</p>
+<h3 class="text-xl font-extrabold text-slate-900 mt-1 truncate" id="dash-active-church">Peniel</h3>
+<button onclick="switchView('district-structure')" class="text-xs font-semibold text-emerald-700 hover:text-emerald-900 mt-2">Ver iglesias <i class="fas fa-arrow-right ml-1"></i></button>
+</div>
+<div class="bg-white p-5 rounded-2xl shadow-xs border border-blue-200/70 hover:border-blue-300 transition-all">
+<div class="flex items-center justify-between gap-3"><div class="w-11 h-11 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center text-lg"><i class="fas fa-calendar-days"></i></div><span class="text-[10px] font-black uppercase tracking-wider text-blue-700 bg-blue-50 px-2 py-1 rounded-lg">Próximas</span></div>
+<p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mt-4">Actividades JA</p>
+<h3 class="text-2xl font-extrabold text-slate-900 mt-1" id="dash-upcoming-activities-count">0</h3>
+<button onclick="switchView('activities')" class="text-xs font-semibold text-blue-700 hover:text-blue-900 mt-2">Ver actividades <i class="fas fa-arrow-right ml-1"></i></button>
+</div>
+<div class="bg-white p-5 rounded-2xl shadow-xs border border-violet-200/70 hover:border-violet-300 transition-all">
+<div class="flex items-center justify-between gap-3"><div class="w-11 h-11 rounded-xl bg-violet-50 text-violet-700 flex items-center justify-center text-lg"><i class="fas fa-chart-line"></i></div><span class="text-[10px] font-black uppercase tracking-wider text-violet-700 bg-violet-50 px-2 py-1 rounded-lg">Asistencia</span></div>
+<p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mt-4">Promedio registrado</p>
+<h3 class="text-2xl font-extrabold text-slate-900 mt-1" id="dash-attendance-percent">0%</h3>
+<p class="text-xs text-slate-500 mt-1" id="dash-attendance-detail">Sin registros todavía</p>
+</div>
+<div class="bg-white p-5 rounded-2xl shadow-xs border border-amber-200/70 hover:border-amber-300 transition-all">
+<div class="flex items-center justify-between gap-3"><div class="w-11 h-11 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center text-lg"><i class="fas fa-coins"></i></div><span class="text-[10px] font-black uppercase tracking-wider text-amber-700 bg-amber-50 px-2 py-1 rounded-lg">Finanzas</span></div>
+<p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mt-4">Balance actual</p>
+<h3 class="text-xl font-extrabold text-slate-900 mt-1" id="dash-finance-balance">$0</h3>
+<p class="text-xs text-slate-500 mt-1" id="dash-finance-detail">Sin movimientos</p>
+</div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+<div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80">
+<div class="flex items-center justify-between mb-4"><div><h3 class="font-bold text-slate-900 text-lg">Próximas Actividades JA</h3><p class="text-xs text-slate-500">Solo de la iglesia activa</p></div><button onclick="switchView('activities')" class="text-xs font-semibold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg">Ver todas <i class="fas fa-arrow-right ml-1"></i></button></div>
+<div id="dash-upcoming-activities-list" class="space-y-3"></div>
+</div>
+<div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80">
+<div class="flex items-center justify-between mb-4"><div><h3 class="font-bold text-slate-900 text-lg">Estado financiero</h3><p class="text-xs text-slate-500">Balance y presupuesto de la iglesia activa</p></div><button onclick="switchView('finances')" class="text-xs font-semibold text-amber-700 bg-amber-50 px-3 py-1.5 rounded-lg">Ver finanzas <i class="fas fa-arrow-right ml-1"></i></button></div>
+<div class="grid grid-cols-3 gap-3 mb-4"><div class="p-3 rounded-xl bg-emerald-50 border border-emerald-100"><p class="text-[10px] font-bold uppercase text-emerald-700">Ingresos</p><p class="text-sm font-extrabold text-emerald-900 mt-1" id="dash-income">$0</p></div><div class="p-3 rounded-xl bg-red-50 border border-red-100"><p class="text-[10px] font-bold uppercase text-red-700">Gastos</p><p class="text-sm font-extrabold text-red-900 mt-1" id="dash-expense">$0</p></div><div class="p-3 rounded-xl bg-blue-50 border border-blue-100"><p class="text-[10px] font-bold uppercase text-blue-700">Presupuesto</p><p class="text-sm font-extrabold text-blue-900 mt-1" id="dash-budget">$0</p></div></div>
+<div class="h-2.5 bg-slate-100 rounded-full overflow-hidden"><div id="dash-budget-progress" class="h-full bg-blue-600 rounded-full transition-all" style="width:0%"></div></div><p class="text-xs text-slate-500 mt-2" id="dash-budget-detail">Sin presupuesto registrado para el año actual.</p>
+</div>
+</div>
+
+<div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80">
+<div class="flex items-center justify-between mb-4"><div><h3 class="font-bold text-slate-900 text-lg">Resumen de atención</h3><p class="text-xs text-slate-500">Programaciones y asistencia reciente</p></div><button onclick="switchView('attendance-history')" class="text-xs font-semibold text-violet-700 bg-violet-50 px-3 py-1.5 rounded-lg">Ver historial <i class="fas fa-arrow-right ml-1"></i></button></div>
+<div id="dash-attendance-list" class="grid grid-cols-1 sm:grid-cols-3 gap-3"></div>
+</div>
+
 <!-- Tarjeta de Cumpleañeros del Mes -->
 <div class="bg-gradient-to-r from-indigo-900 via-blue-900 to-slate-900 text-white p-6 rounded-2xl shadow-md border border-blue-800/60">
 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
@@ -3306,6 +3313,63 @@
             };
         }
 
+        function escapeDashboardHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+        }
+
+        function renderDashboardEnhanced() {
+            const ctx = getActiveChurchContext();
+            const churchName = ctx.churchName || 'Peniel';
+            const churchId = ctx.churchId;
+            const now = new Date();
+            const todayKey = now.toISOString().slice(0,10);
+            const upcoming = (activities || []).filter(a => {
+                const id = a.churchId || normalizeChurchId(a.churchName || '');
+                return id === churchId && a.startDate && a.startDate >= todayKey && getEffectiveActivityStatus(a) !== 'Cancelada';
+            }).sort((a,b) => String(a.startDate).localeCompare(String(b.startDate)) || String(a.startTime||'').localeCompare(String(b.startTime||'')));
+
+            const activeChurchEl = document.getElementById('dash-active-church');
+            if (activeChurchEl) activeChurchEl.textContent = churchName;
+            const upCount = document.getElementById('dash-upcoming-activities-count');
+            if (upCount) upCount.textContent = upcoming.length;
+
+            const list = document.getElementById('dash-upcoming-activities-list');
+            if (list) {
+                list.innerHTML = upcoming.slice(0,5).map(a => `
+                    <button type="button" onclick="viewActivityDetails('${String(a.id).replace(/'/g,"\'")}')" class="w-full text-left p-3.5 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50/40 transition-all flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0"><i class="fas fa-calendar-day"></i></div>
+                        <div class="min-w-0 flex-1"><p class="font-bold text-sm text-slate-900 truncate">${escapeDashboardHtml(a.name || a.type || 'Actividad JA')}</p><p class="text-xs text-slate-500 mt-0.5">${escapeDashboardHtml(formatActivityDate(a.startDate))}${a.startTime ? ' • '+escapeDashboardHtml(a.startTime) : ''}${a.place ? ' • '+escapeDashboardHtml(a.place) : ''}</p></div>
+                        <i class="fas fa-chevron-right text-xs text-slate-400"></i>
+                    </button>`).join('') || '<div class="text-center py-8 text-sm text-slate-400 border-2 border-dashed border-slate-200 rounded-xl"><i class="fas fa-calendar-check text-2xl mb-2"></i><p>No hay actividades próximas.</p></div>';
+            }
+
+            const churchFin = (financeRecords || []).filter(x => (x.churchId || normalizeChurchId(x.churchName || '')) === churchId);
+            const income = churchFin.filter(x=>x.type==='Ingreso').reduce((s,x)=>s+Number(x.amount||0),0);
+            const expense = churchFin.filter(x=>x.type==='Gasto').reduce((s,x)=>s+Number(x.amount||0),0);
+            const balance = income-expense;
+            const money = v => new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0}).format(Number(v||0));
+            const finBalance = document.getElementById('dash-finance-balance'); if(finBalance) finBalance.textContent=money(balance);
+            const finDetail = document.getElementById('dash-finance-detail'); if(finDetail) finDetail.textContent=`${churchFin.length} movimiento${churchFin.length===1?'':'s'}`;
+            const di=document.getElementById('dash-income'); if(di) di.textContent=money(income);
+            const de=document.getElementById('dash-expense'); if(de) de.textContent=money(expense);
+
+            const year = now.getFullYear();
+            const budgets=(financeBudgets||[]).filter(x=>Number(x.year)===year && (x.churchId||normalizeChurchId(x.churchName||''))===churchId);
+            const budgetTotal=budgets.reduce((s,x)=>s+Number(x.amount||x.budgetedAmount||0),0);
+            const executed=expense;
+            const pct=budgetTotal>0?Math.min(100,Math.round((executed/budgetTotal)*100)):0;
+            const db=document.getElementById('dash-budget'); if(db) db.textContent=money(budgetTotal);
+            const dp=document.getElementById('dash-budget-progress'); if(dp) dp.style.width=pct+'%';
+            const dd=document.getElementById('dash-budget-detail'); if(dd) dd.textContent=budgetTotal?`${pct}% ejecutado • ${money(Math.max(0,budgetTotal-executed))} disponible`:'Sin presupuesto registrado para el año actual.';
+
+            const attActivities=(activities||[]).filter(a => (a.churchId||normalizeChurchId(a.churchName||''))===churchId && getActivityAttendanceStats(a).total>0);
+            const attTotals=attActivities.reduce((s,a)=>{const x=getActivityAttendanceStats(a);s.total+=x.total;s.present+=x.present;s.absent+=x.absent;s.justified+=x.justified;return s;},{total:0,present:0,absent:0,justified:0});
+            const attPct=attTotals.total?Math.round(attTotals.present/attTotals.total*100):0;
+            const ap=document.getElementById('dash-attendance-percent');if(ap)ap.textContent=attPct+'%';
+            const ad=document.getElementById('dash-attendance-detail');if(ad)ad.textContent=attTotals.total?`${attTotals.present} presentes de ${attTotals.total} registros`:'Sin registros todavía';
+            const al=document.getElementById('dash-attendance-list');if(al)al.innerHTML=`<div class="p-4 rounded-xl bg-emerald-50 border border-emerald-100"><p class="text-[10px] font-bold uppercase text-emerald-700">Presentes</p><p class="text-xl font-extrabold text-emerald-900 mt-1">${attTotals.present}</p></div><div class="p-4 rounded-xl bg-red-50 border border-red-100"><p class="text-[10px] font-bold uppercase text-red-700">No asistieron</p><p class="text-xl font-extrabold text-red-900 mt-1">${attTotals.absent}</p></div><div class="p-4 rounded-xl bg-amber-50 border border-amber-100"><p class="text-[10px] font-bold uppercase text-amber-700">Justificados</p><p class="text-xl font-extrabold text-amber-900 mt-1">${attTotals.justified}</p></div>`;
+        }
+
         function renderDashboard() {
             const total = members.length;
             const baptizedCount = members.filter(m => m.baptized).length;
@@ -3412,6 +3476,8 @@
                     `;
                 }).join('');
             }
+
+            renderDashboardEnhanced();
         }
 
         // ==========================================
