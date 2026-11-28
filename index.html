@@ -1146,6 +1146,39 @@
                     </div>
                 </div>
 
+                <!-- CALENDARIO DE ACTIVIDADES JA -->
+                <div class="bg-white p-5 sm:p-6 rounded-2xl shadow-xs border border-slate-200/80">
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-5">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="w-9 h-9 rounded-xl bg-cyan-100 text-cyan-700 flex items-center justify-center"><i class="fas fa-calendar-days"></i></span>
+                                <div>
+                                    <h2 class="font-extrabold text-slate-900">Calendario de Actividades JA</h2>
+                                    <p class="text-xs text-slate-500 mt-0.5">Consulta las actividades de la iglesia activa en una vista mensual.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-50 text-blue-800 text-xs font-bold"><i class="fas fa-church"></i><span id="activities-calendar-church">Peniel</span></span>
+                            <button type="button" onclick="changeActivitiesCalendarMonth(-1)" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center" title="Mes anterior"><i class="fas fa-chevron-left"></i></button>
+                            <button type="button" onclick="goActivitiesCalendarToday()" class="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold"><i class="fas fa-calendar-day mr-1"></i>Hoy</button>
+                            <button type="button" onclick="changeActivitiesCalendarMonth(1)" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center" title="Mes siguiente"><i class="fas fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-center mb-4">
+                        <h3 id="activities-calendar-title" class="text-lg font-black text-slate-900 capitalize">Mes</h3>
+                    </div>
+                    <div class="grid grid-cols-7 gap-1.5 mb-1.5">
+                        <div class="text-center text-[10px] font-extrabold uppercase tracking-wide text-slate-400 py-2">Lun</div><div class="text-center text-[10px] font-extrabold uppercase tracking-wide text-slate-400 py-2">Mar</div><div class="text-center text-[10px] font-extrabold uppercase tracking-wide text-slate-400 py-2">Mié</div><div class="text-center text-[10px] font-extrabold uppercase tracking-wide text-slate-400 py-2">Jue</div><div class="text-center text-[10px] font-extrabold uppercase tracking-wide text-slate-400 py-2">Vie</div><div class="text-center text-[10px] font-extrabold uppercase tracking-wide text-slate-400 py-2">Sáb</div><div class="text-center text-[10px] font-extrabold uppercase tracking-wide text-slate-400 py-2">Dom</div>
+                    </div>
+                    <div id="activities-calendar-grid" class="grid grid-cols-7 gap-1.5"></div>
+                    <div class="flex flex-wrap gap-3 mt-4 pt-4 border-t border-slate-100 text-[11px] text-slate-500">
+                        <span><i class="fas fa-circle text-blue-500 mr-1"></i>Actividad programada</span>
+                        <span><i class="fas fa-circle text-emerald-500 mr-1"></i>Realizada</span>
+                        <span><i class="fas fa-circle text-red-500 mr-1"></i>Cancelada</span>
+                    </div>
+                </div>
+
                 <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-slate-200/80">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
                         <div>
@@ -2248,6 +2281,7 @@
         let currentDraftSchedule = null;
         let activeClubTab = 'Aventureros';
         let activeClubClassFilter = '';
+        let activitiesCalendarDate = new Date();
 
         // Estructura de Distrito e Iglesias
         const DEFAULT_DISTRICT_STRUCTURE = {
@@ -3321,6 +3355,10 @@
             }
             if (viewName === 'finances') {
                 renderFinances();
+            }
+            if (viewName === 'activities') {
+                renderActivitiesCalendar();
+                renderActivitiesList();
             }
         }
 
@@ -5677,11 +5715,100 @@
             }
         }
 
+        function getActivityCalendarDateRange(activity) {
+            const start = String(activity.startDate || '').trim();
+            const end = String(activity.endDate || start).trim() || start;
+            return { start, end: end < start ? start : end };
+        }
+
+        function activityOccursOnDate(activity, dateKey) {
+            const range = getActivityCalendarDateRange(activity);
+            return !!range.start && dateKey >= range.start && dateKey <= range.end;
+        }
+
+        function formatCalendarKey(date) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        function getActivityCalendarStatusClass(activity) {
+            const status = getEffectiveActivityStatus(activity);
+            if (status === 'Realizada') return 'bg-emerald-500';
+            if (status === 'Cancelada') return 'bg-red-500';
+            return 'bg-blue-500';
+        }
+
+        function renderActivitiesCalendar() {
+            const grid = document.getElementById('activities-calendar-grid');
+            const title = document.getElementById('activities-calendar-title');
+            const church = document.getElementById('activities-calendar-church');
+            if (!grid) return;
+
+            const ctx = getActiveChurchContext();
+            if (church) church.textContent = ctx.churchName;
+            const year = activitiesCalendarDate.getFullYear();
+            const month = activitiesCalendarDate.getMonth();
+            const monthLabel = new Intl.DateTimeFormat('es-CO', { month: 'long', year: 'numeric' }).format(activitiesCalendarDate);
+            if (title) title.textContent = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
+
+            const firstDay = new Date(year, month, 1);
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            let mondayIndex = firstDay.getDay() - 1;
+            if (mondayIndex < 0) mondayIndex = 6;
+            const totalCells = Math.ceil((mondayIndex + daysInMonth) / 7) * 7;
+            const todayKey = formatCalendarKey(new Date());
+            const monthActivities = activities.filter(a => {
+                const range = getActivityCalendarDateRange(a);
+                return range.start && range.end >= `${year}-${String(month + 1).padStart(2,'0')}-01` && range.start <= `${year}-${String(month + 1).padStart(2,'0')}-${String(daysInMonth).padStart(2,'0')}`;
+            });
+
+            const cells = [];
+            for (let i = 0; i < totalCells; i++) {
+                const dayNumber = i - mondayIndex + 1;
+                if (dayNumber < 1 || dayNumber > daysInMonth) {
+                    cells.push('<div class="min-h-[92px] rounded-xl bg-slate-50/60 border border-slate-100"></div>');
+                    continue;
+                }
+                const date = new Date(year, month, dayNumber);
+                const key = formatCalendarKey(date);
+                const dayActivities = monthActivities.filter(a => activityOccursOnDate(a, key)).sort((a,b) => String(a.startTime||'').localeCompare(String(b.startTime||'')));
+                const isToday = key === todayKey;
+                const activityHtml = dayActivities.slice(0, 3).map(a => {
+                    const safeId = escapeActivityHtml(a.id);
+                    const statusClass = getActivityCalendarStatusClass(a);
+                    return `<button type="button" onclick="viewActivityDetails('${safeId}')" class="w-full text-left mt-1 px-1.5 py-1 rounded-lg bg-slate-50 hover:bg-blue-50 border border-slate-100 hover:border-blue-200 transition-colors overflow-hidden" title="${escapeActivityHtml(a.name || 'Actividad')}"><span class="flex items-center gap-1"><i class="fas fa-circle text-[6px] ${statusClass}"></i><span class="truncate text-[10px] font-bold text-slate-700">${escapeActivityHtml(a.name || 'Sin nombre')}</span></span></button>`;
+                }).join('');
+                const more = dayActivities.length > 3 ? `<button type="button" onclick="scrollToActivitiesListForDate('${key}')" class="text-[10px] font-bold text-blue-600 mt-1">+${dayActivities.length - 3} más</button>` : '';
+                cells.push(`<div class="min-h-[92px] rounded-xl border ${isToday ? 'border-blue-400 ring-1 ring-blue-200 bg-blue-50/40' : 'border-slate-200 bg-white'} p-1.5 overflow-hidden"><div class="flex items-center justify-between"><span class="w-6 h-6 flex items-center justify-center rounded-full ${isToday ? 'bg-blue-600 text-white' : 'text-slate-600'} text-xs font-black">${dayNumber}</span>${dayActivities.length ? `<span class="text-[9px] font-bold text-slate-400">${dayActivities.length}</span>` : ''}</div>${activityHtml}${more}</div>`);
+            }
+            grid.innerHTML = cells.join('');
+        }
+
+        function changeActivitiesCalendarMonth(delta) {
+            activitiesCalendarDate = new Date(activitiesCalendarDate.getFullYear(), activitiesCalendarDate.getMonth() + Number(delta || 0), 1);
+            renderActivitiesCalendar();
+        }
+
+        function goActivitiesCalendarToday() {
+            const now = new Date();
+            activitiesCalendarDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            renderActivitiesCalendar();
+        }
+
+        function scrollToActivitiesListForDate(dateKey) {
+            const input = document.getElementById('activities-date-filter');
+            if (input) { input.value = dateKey; applyActivityFilters(); }
+            document.getElementById('activities-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
         function renderActivitiesList() {
             const container = document.getElementById('activities-list');
             const count = document.getElementById('activities-count');
             if (!container) return;
 
+            renderActivitiesCalendar();
             const filtered = getFilteredActivities();
             const sorted = [...filtered].sort((a, b) => {
                 const da = `${a.startDate || ''}T${a.startTime || '00:00'}`;
