@@ -64,6 +64,9 @@
         body.role-viewer .admin-only {
             display: none !important;
         }
+        .view-section.hidden {
+            content-visibility: hidden;
+        }
     </style>
 <style>
 @media print {
@@ -76,7 +79,6 @@
 }
 </style>
 <style>
-/* Etapa 12 - Sistema visual uniforme de iconos */
 .icon-uniform, button > i:first-child, a > i:first-child {
   min-width: 1.05em;
   text-align: center;
@@ -85,7 +87,6 @@
   flex-shrink: 0;
 }
 </style><style id="peniel-sidebar-scroll-fix">
-/* Etapa 18 - desplazamiento independiente del menú lateral */
 #sidebar{overflow-y:auto !important; overflow-x:hidden !important; justify-content:flex-start !important; scrollbar-width:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; touch-action:pan-y;}
 #sidebar > div:first-child{min-height:max-content;}
 #main-nav{overflow:visible !important; flex-shrink:0;}
@@ -101,7 +102,6 @@
 #sidebar::-webkit-scrollbar-thumb:hover{background:#64748b;}
 </style>
 
-<!-- ETAPA 25: Optimización móvil y PWA -->
 <meta name="theme-color" content="#0f172a">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1031,7 +1031,6 @@ input,select,textarea{font-size:16px;}
 <!-- ========================================== -->
 <!-- VISTA 4: SECCIÓN DE CLUBES JUVENILES       -->
 <!-- ========================================== -->
-<!-- CENTRO DE REPORTES - ETAPA 17 -->
 <section class="view-section hidden space-y-6 fade-in" id="view-reports">
 <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80">
 <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -1066,7 +1065,6 @@ input,select,textarea{font-size:16px;}
 <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4"><div class="bg-white rounded-2xl border border-emerald-200 p-5 shadow-xs"><div class="flex justify-between"><span class="text-[10px] uppercase font-extrabold text-slate-500">Ingresos</span><i class="fas fa-arrow-trend-up text-emerald-600"></i></div><p class="text-2xl font-black text-emerald-700 mt-2" id="finance-total-income">$0</p></div><div class="bg-white rounded-2xl border border-red-200 p-5 shadow-xs"><div class="flex justify-between"><span class="text-[10px] uppercase font-extrabold text-slate-500">Gastos</span><i class="fas fa-arrow-trend-down text-red-600"></i></div><p class="text-2xl font-black text-red-700 mt-2" id="finance-total-expense">$0</p></div><div class="bg-white rounded-2xl border border-blue-200 p-5 shadow-xs"><div class="flex justify-between"><span class="text-[10px] uppercase font-extrabold text-slate-500">Balance</span><i class="fas fa-scale-balanced text-blue-600"></i></div><p class="text-2xl font-black text-blue-700 mt-2" id="finance-balance">$0</p></div><div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs"><div class="flex justify-between"><span class="text-[10px] uppercase font-extrabold text-slate-500">Movimientos</span><i class="fas fa-receipt text-slate-500"></i></div><p class="text-2xl font-black text-slate-800 mt-2" id="finance-count">0</p></div></div>
 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs admin-only"><div class="flex items-center justify-between gap-3 mb-4"><div><h2 class="font-extrabold text-slate-900" id="finance-form-title">Registrar movimiento</h2><p class="text-xs text-slate-500">Guarda el movimiento en la iglesia activa.</p></div><button class="hidden px-3 py-2 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold" id="finance-cancel-edit" onclick="cancelFinanceEdit()" type="button"><i class="fas fa-ban mr-1"></i>Cancelar edición</button></div><form id="finance-form" onsubmit="saveFinance(event)"><input id="finance-id" type="hidden"/><div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4"><div><label class="block text-xs font-bold mb-1">Tipo *</label><select class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm" id="finance-type" required=""><option value="Ingreso">Ingreso</option><option value="Gasto">Gasto</option></select></div><div><label class="block text-xs font-bold mb-1">Concepto *</label><input class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm" id="finance-concept" placeholder="Ej. Compra de materiales" required=""/></div><div><label class="block text-xs font-bold mb-1">Fecha *</label><input class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm" id="finance-date" required="" type="date"/></div><div><label class="block text-xs font-bold mb-1">Valor *</label><input class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm" id="finance-amount" min="0" placeholder="0" required="" step="0.01" type="number"/></div><div><label class="block text-xs font-bold mb-1">Responsable</label><input class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm" id="finance-responsible" placeholder="Nombre"/></div><div><label class="block text-xs font-bold mb-1">Categoría</label><select class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm" id="finance-category"><option>Ofrendas</option><option>Donaciones</option><option>Actividades</option><option>Eventos</option><option>Materiales</option><option>Alimentación</option><option>Transporte</option><option>Programas</option><option>Mantenimiento</option><option>Otros ingresos</option><option>Otros gastos</option></select></div><div class="md:col-span-2"><label class="block text-xs font-bold mb-1">Observaciones</label><input class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm" id="finance-notes" placeholder="Detalle opcional"/></div></div><div class="flex justify-end mt-4"><button class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold" type="submit"><i class="fas fa-save mr-1"></i>Guardar movimiento</button></div></form></div>
 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs"><div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4"><div><h2 class="font-extrabold">Historial financiero</h2><p class="text-xs text-slate-500" id="finance-history-count">0 movimientos</p></div><button class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold" onclick="clearFinanceFilters()" type="button"><i class="fas fa-broom mr-1"></i>Limpiar filtros</button></div><div class="grid md:grid-cols-2 lg:grid-cols-5 gap-3 mb-4"><input class="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm" id="finance-search" oninput="renderFinances()" placeholder="Buscar concepto o responsable"/><select class="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm" id="finance-filter-type" onchange="renderFinances()"><option value="">Todos los tipos</option><option>Ingreso</option><option>Gasto</option></select><select class="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm" id="finance-filter-category" onchange="renderFinances()"><option value="">Todas las categorías</option><option>Ofrendas</option><option>Donaciones</option><option>Actividades</option><option>Eventos</option><option>Materiales</option><option>Alimentación</option><option>Transporte</option><option>Programas</option><option>Mantenimiento</option><option>Otros ingresos</option><option>Otros gastos</option></select><input class="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm" id="finance-filter-from" onchange="renderFinances()" type="date"/><input class="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm" id="finance-filter-to" onchange="renderFinances()" type="date"/></div><div class="overflow-x-auto"><table class="w-full min-w-[900px] text-sm"><thead><tr class="border-b border-slate-200 text-left"><th class="px-3 py-3 text-[10px] uppercase text-slate-500">Fecha</th><th class="px-3 py-3 text-[10px] uppercase text-slate-500">Tipo</th><th class="px-3 py-3 text-[10px] uppercase text-slate-500">Concepto</th><th class="px-3 py-3 text-[10px] uppercase text-slate-500">Categoría</th><th class="px-3 py-3 text-[10px] uppercase text-slate-500">Responsable</th><th class="px-3 py-3 text-[10px] uppercase text-slate-500 text-right">Valor</th><th class="px-3 py-3 text-[10px] uppercase text-slate-500">Observaciones</th><th class="px-3 py-3 text-[10px] uppercase text-slate-500 text-center">Acciones</th></tr></thead><tbody id="finance-list"></tbody></table></div><div class="hidden text-center py-10 text-slate-400" id="finance-empty"><i class="fas fa-coins text-3xl mb-2"></i><p class="text-sm font-semibold">No hay movimientos para mostrar en la iglesia activa.</p></div></div>
-<!-- ETAPA 9C: REPORTES FINANCIEROS POR IGLESIA -->
 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs mt-6" id="finance-reports-panel">
 <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">
 <div>
@@ -2457,7 +2455,6 @@ input,select,textarea{font-size:16px;}
         let districtStructure = JSON.parse(JSON.stringify(DEFAULT_DISTRICT_STRUCTURE));
         let districtStructureListenerStarted = false;
 
-        // Iglesia activa: etapa 1 de la separación de datos por iglesia.
         // Por seguridad, esta etapa solo establece el contexto activo; no altera todavía los registros existentes.
         let activeChurch = sessionStorage.getItem('ja_active_church') || 'Peniel';
         let notificationItems = [];
@@ -2943,7 +2940,6 @@ input,select,textarea{font-size:16px;}
         }
 
         // Los cargos de Ministerios Juveniles pertenecen a la iglesia del miembro.
-        // Como Etapa 2 ya separa la colección ja_members por iglesia, aquí reforzamos
         // la asociación para que nunca se pueda guardar un cargo en otra iglesia.
         function isMemberInActiveChurch(member) {
             const context = getActiveChurchContext();
@@ -3183,7 +3179,6 @@ input,select,textarea{font-size:16px;}
         }
 
         // ==========================================
-        // ETAPA 21 - CENTRO DE NOTIFICACIONES
         // ==========================================
         function getNotificationStorageKey() {
             return `peniel_next_notifications_${getActiveChurchContext().churchId}`;
@@ -4119,7 +4114,11 @@ input,select,textarea{font-size:16px;}
             const box = document.getElementById('global-search-results');
             if (!input || input.dataset.ready === '1') return;
             input.dataset.ready = '1';
-            input.addEventListener('input', () => globalSearchRender(input.value));
+            let searchTimer = null;
+            input.addEventListener('input', () => {
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(() => globalSearchRender(input.value), 140);
+            });
             input.addEventListener('focus', () => { if (input.value.trim()) globalSearchRender(input.value); });
             input.addEventListener('keydown', e => { if (e.key === 'Escape') { input.value=''; globalSearchRender(''); input.blur(); } });
             if (clear) clear.addEventListener('click', () => { input.value=''; globalSearchRender(''); input.focus(); });
@@ -7646,7 +7645,6 @@ input,select,textarea{font-size:16px;}
         }
 
         // Exponer funciones al ámbito global window para eventos inline en HTML (necesario en type="module")
-        // Corrección Etapa 25: acciones rápidas y campana superior funcionan también en móvil/PWA.
         window.quickAction = quickAction;
         window.openNotificationsFromHeader = openNotificationsFromHeader;
         // Actualiza el estado visual automáticamente cada minuto.
@@ -7947,7 +7945,6 @@ function printProgramRegistration(){const sch=savedSchedules.find(x=>x.id===sele
         applyRolePermissionsUI();
         renderActiveChurchSelector();
         firebaseInitPromise = initCloudSync();
-        setTimeout(() => { renderGeneralAttendanceReport(); renderActivitiesAttendancePanel(); }, 300);
         // No intentar leer Firestore antes de que exista una sesión autenticada.
         firebaseInitPromise.catch(() => {});
     </script>
@@ -7973,7 +7970,7 @@ function printProgramRegistration(){const sch=savedSchedules.find(x=>x.id===sele
 </div>
 </div>
 </div>
-<script>\n// Iconos uniformes para botones generados dinámicamente.\n(function(){\n  const iconRules = [\n    [/^Nueva actividad/i,'fa-plus'],\n    [/^Guardar(?:\s|$)/i,'fa-floppy-disk'],\n    [/^Editar(?:\s|$)/i,'fa-pen-to-square'],\n    [/^Eliminar(?:\s|$)/i,'fa-trash-can'],\n    [/^Borrar todo/i,'fa-trash-can'],\n    [/^Buscar/i,'fa-magnifying-glass'],\n    [/^Limpiar/i,'fa-broom'],\n    [/^Filtrar/i,'fa-filter'],\n    [/^Detalles?/i,'fa-eye'],\n    [/^Ver participantes/i,'fa-users'],\n    [/^Exportar/i,'fa-file-export'],\n    [/^Imprimir/i,'fa-print'],\n    [/^Descargar/i,'fa-download'],\n    [/^Cerrar/i,'fa-xmark'],\n    [/^Cancelar/i,'fa-xmark'],\n    [/^Confirmar/i,'fa-check'],\n    [/^Añadir/i,'fa-plus'],\n    [/^Nuevo/i,'fa-plus'],\n    [/^Guardar y Aplicar/i,'fa-check'],\n    [/^Cambiar/i,'fa-right-left'],\n    [/^Hoy$/i,'fa-calendar-day'],\n  ];\n  function decorate(root){\n    if(!root || !root.querySelectorAll) return;\n    root.querySelectorAll('button').forEach(btn=>{\n      if(btn.querySelector('i')) return;\n      const text=(btn.textContent||'').trim().replace(/\\s+/g,' ');\n      if(!text) return;\n      const rule=iconRules.find(([rx])=>rx.test(text));\n      if(!rule) return;\n      const i=document.createElement('i');\n      i.className='fas '+rule[1]+' mr-1';\n      btn.insertBefore(i,btn.firstChild);\n    });\n  }\n  document.addEventListener('DOMContentLoaded',()=>{\n    decorate(document);\n    const observer=new MutationObserver(muts=>muts.forEach(m=>m.addedNodes.forEach(n=>{\n      if(n.nodeType===1) decorate(n);\n    })));\n    observer.observe(document.body,{childList:true,subtree:true});\n  });\n})();\n</script><script id="peniel-sidebar-scroll-js">
+<script>\n// Iconos uniformes para botones generados dinámicamente.\n(function(){\n  const iconRules = [\n    [/^Nueva actividad/i,'fa-plus'],\n    [/^Guardar(?:\s|$)/i,'fa-floppy-disk'],\n    [/^Editar(?:\s|$)/i,'fa-pen-to-square'],\n    [/^Eliminar(?:\s|$)/i,'fa-trash-can'],\n    [/^Borrar todo/i,'fa-trash-can'],\n    [/^Buscar/i,'fa-magnifying-glass'],\n    [/^Limpiar/i,'fa-broom'],\n    [/^Filtrar/i,'fa-filter'],\n    [/^Detalles?/i,'fa-eye'],\n    [/^Ver participantes/i,'fa-users'],\n    [/^Exportar/i,'fa-file-export'],\n    [/^Imprimir/i,'fa-print'],\n    [/^Descargar/i,'fa-download'],\n    [/^Cerrar/i,'fa-xmark'],\n    [/^Cancelar/i,'fa-xmark'],\n    [/^Confirmar/i,'fa-check'],\n    [/^Añadir/i,'fa-plus'],\n    [/^Nuevo/i,'fa-plus'],\n    [/^Guardar y Aplicar/i,'fa-check'],\n    [/^Cambiar/i,'fa-right-left'],\n    [/^Hoy$/i,'fa-calendar-day'],\n  ];\n  function decorate(root){\n    if(!root || !root.querySelectorAll) return;\n    root.querySelectorAll('button').forEach(btn=>{\n      if(btn.querySelector('i')) return;\n      const text=(btn.textContent||'').trim().replace(/\\s+/g,' ');\n      if(!text) return;\n      const rule=iconRules.find(([rx])=>rx.test(text));\n      if(!rule) return;\n      const i=document.createElement('i');\n      i.className='fas '+rule[1]+' mr-1';\n      btn.insertBefore(i,btn.firstChild);\n    });\n  }\n  document.addEventListener('DOMContentLoaded',()=>{\n    decorate(document);\n    let pending = false;\n    let queuedMutations = [];\n    const observer = new MutationObserver(muts => {\n      queuedMutations.push(...muts);\n      if (pending) return;\n      pending = true;\n      requestAnimationFrame(() => {\n        pending = false;\n        const batch = queuedMutations.splice(0);\n        batch.forEach(m => m.addedNodes.forEach(n => {\n          if(n.nodeType===1) decorate(n);\n        }));\n      });\n    });\n    observer.observe(document.body,{childList:true,subtree:true});\n  });\n})();\n</script><script id="peniel-sidebar-scroll-js">
 (function(){
   function initSidebarScroll(){
     const sidebar=document.getElementById('sidebar');
