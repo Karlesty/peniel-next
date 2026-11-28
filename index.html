@@ -7970,7 +7970,65 @@ function printProgramRegistration(){const sch=savedSchedules.find(x=>x.id===sele
 </div>
 </div>
 </div>
-<script>\n// Iconos uniformes para botones generados dinámicamente.\n(function(){\n  const iconRules = [\n    [/^Nueva actividad/i,'fa-plus'],\n    [/^Guardar(?:\s|$)/i,'fa-floppy-disk'],\n    [/^Editar(?:\s|$)/i,'fa-pen-to-square'],\n    [/^Eliminar(?:\s|$)/i,'fa-trash-can'],\n    [/^Borrar todo/i,'fa-trash-can'],\n    [/^Buscar/i,'fa-magnifying-glass'],\n    [/^Limpiar/i,'fa-broom'],\n    [/^Filtrar/i,'fa-filter'],\n    [/^Detalles?/i,'fa-eye'],\n    [/^Ver participantes/i,'fa-users'],\n    [/^Exportar/i,'fa-file-export'],\n    [/^Imprimir/i,'fa-print'],\n    [/^Descargar/i,'fa-download'],\n    [/^Cerrar/i,'fa-xmark'],\n    [/^Cancelar/i,'fa-xmark'],\n    [/^Confirmar/i,'fa-check'],\n    [/^Añadir/i,'fa-plus'],\n    [/^Nuevo/i,'fa-plus'],\n    [/^Guardar y Aplicar/i,'fa-check'],\n    [/^Cambiar/i,'fa-right-left'],\n    [/^Hoy$/i,'fa-calendar-day'],\n  ];\n  function decorate(root){\n    if(!root || !root.querySelectorAll) return;\n    root.querySelectorAll('button').forEach(btn=>{\n      if(btn.querySelector('i')) return;\n      const text=(btn.textContent||'').trim().replace(/\\s+/g,' ');\n      if(!text) return;\n      const rule=iconRules.find(([rx])=>rx.test(text));\n      if(!rule) return;\n      const i=document.createElement('i');\n      i.className='fas '+rule[1]+' mr-1';\n      btn.insertBefore(i,btn.firstChild);\n    });\n  }\n  document.addEventListener('DOMContentLoaded',()=>{\n    decorate(document);\n    let pending = false;\n    let queuedMutations = [];\n    const observer = new MutationObserver(muts => {\n      queuedMutations.push(...muts);\n      if (pending) return;\n      pending = true;\n      requestAnimationFrame(() => {\n        pending = false;\n        const batch = queuedMutations.splice(0);\n        batch.forEach(m => m.addedNodes.forEach(n => {\n          if(n.nodeType===1) decorate(n);\n        }));\n      });\n    });\n    observer.observe(document.body,{childList:true,subtree:true});\n  });\n})();\n</script><script id="peniel-sidebar-scroll-js">
+<script>
+// Iconos uniformes para botones generados dinámicamente.
+(function(){
+  const iconRules = [
+    [/^Nueva actividad/i,'fa-plus'],
+    [/^Guardar(?:\s|$)/i,'fa-floppy-disk'],
+    [/^Editar(?:\s|$)/i,'fa-pen-to-square'],
+    [/^Eliminar(?:\s|$)/i,'fa-trash-can'],
+    [/^Borrar todo/i,'fa-trash-can'],
+    [/^Buscar/i,'fa-magnifying-glass'],
+    [/^Limpiar/i,'fa-broom'],
+    [/^Filtrar/i,'fa-filter'],
+    [/^Detalles?/i,'fa-eye'],
+    [/^Ver participantes/i,'fa-users'],
+    [/^Exportar/i,'fa-file-export'],
+    [/^Imprimir/i,'fa-print'],
+    [/^Descargar/i,'fa-download'],
+    [/^Cerrar/i,'fa-xmark'],
+    [/^Cancelar/i,'fa-xmark'],
+    [/^Confirmar/i,'fa-check'],
+    [/^Añadir/i,'fa-plus'],
+    [/^Nuevo/i,'fa-plus'],
+    [/^Guardar y Aplicar/i,'fa-check'],
+    [/^Cambiar/i,'fa-right-left'],
+    [/^Hoy$/i,'fa-calendar-day'],
+  ];
+  function decorate(root){
+    if(!root || !root.querySelectorAll) return;
+    root.querySelectorAll('button').forEach(btn=>{
+      if(btn.querySelector('i')) return;
+      const text=(btn.textContent||'').trim().replace(/\\s+/g,' ');
+      if(!text) return;
+      const rule=iconRules.find(([rx])=>rx.test(text));
+      if(!rule) return;
+      const i=document.createElement('i');
+      i.className='fas '+rule[1]+' mr-1';
+      btn.insertBefore(i,btn.firstChild);
+    });
+  }
+  document.addEventListener('DOMContentLoaded',()=>{
+    decorate(document);
+    let pending = false;
+    let queuedMutations = [];
+    const observer = new MutationObserver(muts => {
+      queuedMutations.push(...muts);
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(() => {
+        pending = false;
+        const batch = queuedMutations.splice(0);
+        batch.forEach(m => m.addedNodes.forEach(n => {
+          if(n.nodeType===1) decorate(n);
+        }));
+      });
+    });
+    observer.observe(document.body,{childList:true,subtree:true});
+  });
+})();
+</script><script id="peniel-sidebar-scroll-js">
 (function(){
   function initSidebarScroll(){
     const sidebar=document.getElementById('sidebar');
