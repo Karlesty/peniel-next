@@ -96,6 +96,31 @@
 #sidebar::-webkit-scrollbar-thumb{background:#475569;border-radius:999px;border:2px solid #0f172a;}
 #sidebar::-webkit-scrollbar-thumb:hover{background:#64748b;}
 </style>
+
+<!-- ETAPA 25: Optimización móvil y PWA -->
+<meta name="theme-color" content="#0f172a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Peniel Next">
+<meta name="application-name" content="Peniel Next">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<style id="peniel-etapa25-mobile">
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;}
+body{overscroll-behavior-y:none;}
+button,a,input,select,textarea{touch-action:manipulation;}
+button{min-height:40px;}
+input,select,textarea{font-size:16px;}
+@media(max-width:767px){
+  .overflow-x-auto{-webkit-overflow-scrolling:touch;}
+  table{min-width:max-content;}
+  #sidebar{padding-bottom:max(1rem,env(safe-area-inset-bottom));}
+  body{padding-bottom:max(5rem,env(safe-area-inset-bottom));}
+}
+@media(display-mode:standalone){body{padding-top:env(safe-area-inset-top);padding-bottom:max(1rem,env(safe-area-inset-bottom));}}
+</style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans antialiased selection:bg-blue-600 selection:text-white pb-20 lg:pb-0">
 <!-- ========================================================== -->
@@ -187,6 +212,7 @@
 </div>
 </div>
 <div class="flex items-center gap-2">
+<button class="relative p-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 focus:outline-none" onclick="openNotificationsFromHeader()" title="Notificaciones" aria-label="Notificaciones"><i class="fas fa-bell text-sm"></i><span id="mobile-header-notifications-badge" class="hidden absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-black items-center justify-center">0</span></button>
 <button class="p-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 focus:outline-none" onclick="openInstallGuideModal()" title="Instalar App">
 <i class="fas fa-download text-sm"></i>
 </button>
@@ -225,7 +251,7 @@
 <div class="app-brand-logo-box w-11 h-11 rounded-2xl bg-[#1A367E] flex items-center justify-center text-white font-black text-xl shadow-lg overflow-hidden shrink-0 border border-cyan-400/20">
 </div>
 <div class="min-w-0">
-<h2 class="app-brand-title text-white font-bold text-lg tracking-tight truncate">Peniel Next</h2>
+<div class="flex items-center gap-2 min-w-0"><h2 class="app-brand-title text-white font-bold text-lg tracking-tight truncate">Peniel Next</h2><button type="button" onclick="openNotificationsFromHeader()" class="relative shrink-0 w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 flex items-center justify-center" title="Notificaciones" aria-label="Abrir notificaciones"><i class="fas fa-bell text-sm"></i><span id="header-notifications-badge" class="hidden absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-black items-center justify-center">0</span></button></div>
 <span class="inline-flex items-center gap-1.5 text-xs text-emerald-400 font-medium" id="sidebar-sync-indicator">
 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                                 Nube Sincronizada
@@ -286,6 +312,14 @@
 <i class="fas fa-chart-column w-5 text-center"></i>
 <span>Reportes</span>
 </button>
+<button class="nav-btn w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-white transition-all" data-view="notifications">
+<div class="flex items-center gap-3.5">
+<i class="fas fa-bell w-5 text-center"></i>
+<span>Notificaciones</span>
+</div>
+<span id="sidebar-notifications-badge" class="hidden min-w-5 h-5 px-1.5 rounded-full bg-red-500 text-white text-[10px] font-black items-center justify-center">0</span>
+</button>
+<button class="nav-btn w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-white transition-all" data-view="help-center"><i class="fas fa-circle-question w-5 text-center"></i><span>Centro de Ayuda</span></button>
 <div class="pt-4 pb-1">
 <p class="px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Ministerios Juveniles</p>
 </div>
@@ -653,6 +687,42 @@
 <!-- ========================================== -->
 <!-- VISTA: DISTRITO E IGLESIAS                    -->
 <!-- ========================================== -->
+<section class="view-section hidden space-y-6 fade-in" id="view-help-center">
+<div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80"><div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4"><div><span class="text-xs font-bold uppercase tracking-wider text-blue-700 bg-blue-50 px-3 py-1 rounded-full">Etapa 22</span><h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2">Centro de Ayuda</h1><p class="text-slate-500 text-sm mt-1">Guía rápida para utilizar Peniel Next y trabajar correctamente con la iglesia activa.</p></div><button type="button" onclick="switchView('notifications')" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 text-sm font-bold hover:bg-amber-100"><i class="fas fa-bell"></i> Ver notificaciones</button></div></div>
+<div class="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+<div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs"><div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center mb-3"><i class="fas fa-church"></i></div><h2 class="font-extrabold text-slate-900">1. Iglesia activa</h2><p class="text-sm text-slate-500 mt-2">Selecciona la iglesia en la barra superior. La información mostrada corresponde a esa iglesia.</p></div>
+<div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs"><div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-3"><i class="fas fa-users"></i></div><h2 class="font-extrabold text-slate-900">2. Miembros</h2><p class="text-sm text-slate-500 mt-2">Registra y actualiza las personas de la iglesia activa con sus documentos y datos correspondientes.</p></div>
+<div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs"><div class="w-10 h-10 rounded-xl bg-violet-50 text-violet-700 flex items-center justify-center mb-3"><i class="fas fa-campground"></i></div><h2 class="font-extrabold text-slate-900">3. Ministerios</h2><p class="text-sm text-slate-500 mt-2">Administra Ministerio JA, Grupo Pequeño, Aventureros, Conquistadores y Guías Mayores.</p></div>
+<div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs"><div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center mb-3"><i class="fas fa-calendar-check"></i></div><h2 class="font-extrabold text-slate-900">4. Programaciones y actividades</h2><p class="text-sm text-slate-500 mt-2">Crea programas, actividades y registros para mantener organizada la planificación de la iglesia.</p></div>
+<div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs"><div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center mb-3"><i class="fas fa-chart-column"></i></div><h2 class="font-extrabold text-slate-900">5. Reportes</h2><p class="text-sm text-slate-500 mt-2">Consulta indicadores de miembros, ministerios, programaciones, actividades, asistencia y finanzas.</p></div>
+<div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs"><div class="w-10 h-10 rounded-xl bg-cyan-50 text-cyan-700 flex items-center justify-center mb-3"><i class="fas fa-database"></i></div><h2 class="font-extrabold text-slate-900">6. Respaldo y restauración</h2><p class="text-sm text-slate-500 mt-2">En Configuración puedes descargar respaldos y, como administrador, restaurarlos de forma controlada.</p></div>
+</div>
+<div class="bg-slate-900 text-white p-6 rounded-2xl shadow-sm"><div class="flex items-start gap-3"><div class="w-10 h-10 rounded-xl bg-white/10 text-cyan-300 flex items-center justify-center shrink-0"><i class="fas fa-shield-halved"></i></div><div><h2 class="font-extrabold">Seguridad</h2><p class="text-sm text-slate-300 mt-1">El administrador puede modificar datos. El modo consulta permite visualizar la información sin modificarla. El acceso se controla mediante Firebase Authentication.</p></div></div></div>
+</section>
+<section class="view-section hidden space-y-6 fade-in" id="view-notifications">
+<div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <span class="text-xs font-bold uppercase tracking-wider text-blue-700 bg-blue-50 px-3 py-1 rounded-full">Etapa 21</span>
+      <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2">Centro de Notificaciones</h1>
+      <p class="text-slate-500 text-sm mt-1">Consulta avisos importantes de la iglesia activa y accede directamente al módulo relacionado.</p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <button type="button" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700" onclick="markAllNotificationsRead()"><i class="fas fa-check-double"></i> Marcar todas como leídas</button>
+      <button type="button" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-xs font-bold text-red-700" onclick="clearNotificationHistory()"><i class="fas fa-broom"></i> Limpiar historial</button>
+    </div>
+  </div>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+  <div class="bg-white p-5 rounded-2xl shadow-xs border border-slate-200/80"><p class="text-xs font-bold text-slate-500 uppercase">Total</p><p id="notifications-total" class="text-2xl font-black text-slate-900 mt-1">0</p></div>
+  <div class="bg-white p-5 rounded-2xl shadow-xs border border-slate-200/80"><p class="text-xs font-bold text-slate-500 uppercase">No leídas</p><p id="notifications-unread" class="text-2xl font-black text-red-600 mt-1">0</p></div>
+  <div class="bg-white p-5 rounded-2xl shadow-xs border border-slate-200/80"><p class="text-xs font-bold text-slate-500 uppercase">Iglesia activa</p><p id="notifications-church" class="text-lg font-black text-blue-700 mt-1 truncate">Peniel</p></div>
+</div>
+<div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80">
+  <div id="notifications-list" class="space-y-3"></div>
+</div>
+</section>
+
 <section class="view-section hidden space-y-6 fade-in" id="view-admin-settings">
 <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80">
   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -2360,6 +2430,7 @@
         // Iglesia activa: etapa 1 de la separación de datos por iglesia.
         // Por seguridad, esta etapa solo establece el contexto activo; no altera todavía los registros existentes.
         let activeChurch = sessionStorage.getItem('ja_active_church') || 'Peniel';
+        let notificationItems = [];
 
 
         // Cambios de cargos pendientes: solo se guardan en Firebase al pulsar Guardar.
@@ -3081,7 +3152,146 @@
             refreshAllUI();
         }
 
+        // ==========================================
+        // ETAPA 21 - CENTRO DE NOTIFICACIONES
+        // ==========================================
+        function getNotificationStorageKey() {
+            return `peniel_next_notifications_${getActiveChurchContext().churchId}`;
+        }
+
+        function getNotificationReadState() {
+            try { return JSON.parse(localStorage.getItem(getNotificationStorageKey()) || '{}') || {}; }
+            catch (_) { return {}; }
+        }
+
+        function saveNotificationReadState(state) {
+            try { localStorage.setItem(getNotificationStorageKey(), JSON.stringify(state || {})); } catch (_) {}
+        }
+
+        function buildNotifications() {
+            const ctx = getActiveChurchContext();
+            const today = new Date();
+            const todayKey = today.toISOString().slice(0,10);
+            const notifications = [];
+            const churchActivities = (activities || []).filter(a => (a.churchId || normalizeChurchId(a.churchName || '')) === ctx.churchId);
+            const churchSchedules = (savedSchedules || []).filter(s => (s.churchId || normalizeChurchId(s.churchName || '')) === ctx.churchId);
+            const churchFinances = (financeRecords || []).filter(x => (x.churchId || normalizeChurchId(x.churchName || '')) === ctx.churchId);
+            const add = (item) => notifications.push({ ...item, id: String(item.id), churchId: ctx.churchId });
+
+            churchActivities.forEach(a => {
+                if (!a.startDate || getEffectiveActivityStatus(a) === 'Cancelada') return;
+                const diff = Math.ceil((new Date(`${a.startDate}T00:00:00`) - new Date(`${todayKey}T00:00:00`)) / 86400000);
+                if (diff >= 0 && diff <= 7) {
+                    add({
+                        id: `activity-${a.id}-${a.startDate}`,
+                        level: diff <= 1 ? 'warning' : 'info', icon: 'fa-calendar-day',
+                        title: diff === 0 ? 'Actividad para hoy' : `Actividad próxima: ${a.name || a.type || 'Actividad JA'}`,
+                        text: diff === 0 ? `${a.name || a.type || 'Actividad JA'} está programada para hoy.` : `Está programada para el ${formatActivityDate(a.startDate)}${a.startTime ? ` a las ${a.startTime}` : ''}.`,
+                        action: `viewActivityDetails('${String(a.id).replace(/'/g,"\\'")}')`,
+                        timestamp: `${a.startDate} ${a.startTime || '00:00'}`
+                    });
+                }
+
+                if (a.startDate <= todayKey && getEffectiveActivityStatus(a) !== 'Cancelada') {
+                    const stats = getActivityAttendanceStats(a);
+                    if (stats.total === 0) {
+                        add({ id:`attendance-${a.id}`, level:'warning', icon:'fa-clipboard-question', title:'Asistencia pendiente', text:`No hay asistencia registrada para ${a.name || a.type || 'esta actividad'}.`, action:"switchView('attendance-history')", timestamp:a.startDate });
+                    } else if (stats.pending > 0) {
+                        add({ id:`attendance-pending-${a.id}`, level:'info', icon:'fa-user-clock', title:'Asistencia incompleta', text:`Hay ${stats.pending} participante${stats.pending===1?'':'s'} pendiente${stats.pending===1?'':'s'} por marcar en ${a.name || a.type || 'la actividad'}.`, action:"switchView('attendance-history')", timestamp:a.startDate });
+                    }
+                }
+            });
+
+            const upcomingSchedules = churchSchedules.filter(s => s.date && s.date >= todayKey);
+            if (!upcomingSchedules.length) {
+                add({ id:'schedule-missing', level:'info', icon:'fa-calendar-plus', title:'Programación pendiente', text:'No hay una programación próxima registrada para la iglesia activa.', action:"switchView('scheduler')", timestamp:todayKey });
+            }
+
+            const income = churchFinances.filter(x=>x.type==='Ingreso').reduce((s,x)=>s+Number(x.amount||0),0);
+            const expense = churchFinances.filter(x=>x.type==='Gasto').reduce((s,x)=>s+Number(x.amount||0),0);
+            const budgetTotal = (financeBudgets || []).filter(b => (b.churchId || normalizeChurchId(b.churchName || '')) === ctx.churchId).reduce((s,b)=>s+Number(b.amount || b.total || b.budget || 0),0);
+            if (budgetTotal && expense > budgetTotal) {
+                add({ id:'budget-exceeded', level:'danger', icon:'fa-triangle-exclamation', title:'Presupuesto excedido', text:`Los gastos superan el presupuesto en ${new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0}).format(expense-budgetTotal)}.`, action:"switchView('finances')", timestamp:todayKey });
+            } else if (budgetTotal && expense / budgetTotal >= 0.8) {
+                add({ id:'budget-near-limit', level:'warning', icon:'fa-chart-pie', title:'Presupuesto próximo a agotarse', text:`La ejecución del presupuesto está en ${Math.round((expense/budgetTotal)*100)}%.`, action:"switchView('finances')", timestamp:todayKey });
+            }
+
+            if (!churchActivities.length && !churchSchedules.length && !churchFinances.length) {
+                add({ id:'getting-started', level:'info', icon:'fa-circle-info', title:'Comienza a registrar información', text:'La iglesia activa todavía no tiene actividades, programaciones o movimientos financieros.', action:"switchView('dashboard')", timestamp:todayKey });
+            }
+
+            const priority = {danger:0, warning:1, info:2};
+            return notifications.sort((a,b) => (priority[a.level] ?? 3) - (priority[b.level] ?? 3) || String(a.timestamp||'').localeCompare(String(b.timestamp||''))).slice(0,30);
+        }
+
+        function renderNotifications() {
+            const list = document.getElementById('notifications-list');
+            const totalEl = document.getElementById('notifications-total');
+            const unreadEl = document.getElementById('notifications-unread');
+            const churchEl = document.getElementById('notifications-church');
+            const badge = document.getElementById('sidebar-notifications-badge');
+            if (!list) return;
+            const ctx = getActiveChurchContext();
+            const state = getNotificationReadState();
+            notificationItems = buildNotifications();
+            const unread = notificationItems.filter(n => !state[n.id]).length;
+            if (totalEl) totalEl.textContent = notificationItems.length;
+            if (unreadEl) unreadEl.textContent = unread;
+            if (churchEl) churchEl.textContent = ctx.churchName;
+            updateHeaderNotificationBadges(unread); if (badge) { badge.classList.toggle('inline-flex', unread > 0); }
+
+            if (!notificationItems.length) {
+                list.innerHTML = '<div class="text-center py-12 text-slate-400"><i class="fas fa-bell-slash text-3xl mb-3"></i><p class="font-bold text-slate-600">No hay notificaciones</p><p class="text-xs mt-1">La iglesia activa está al día.</p></div>';
+                return;
+            }
+            const styles = {
+                danger:{box:'border-red-200 bg-red-50/60',icon:'bg-red-100 text-red-700',title:'text-red-900'},
+                warning:{box:'border-amber-200 bg-amber-50/60',icon:'bg-amber-100 text-amber-700',title:'text-amber-900'},
+                info:{box:'border-blue-200 bg-blue-50/60',icon:'bg-blue-100 text-blue-700',title:'text-blue-900'}
+            };
+            list.innerHTML = notificationItems.map(n => {
+                const read = !!state[n.id]; const st = styles[n.level] || styles.info;
+                return `<div class="p-4 rounded-2xl border ${st.box} ${read ? 'opacity-65' : ''}">
+                    <div class="flex items-start gap-3">
+                      <span class="w-10 h-10 rounded-xl ${st.icon} flex items-center justify-center shrink-0"><i class="fas ${n.icon || 'fa-bell'}"></i></span>
+                      <div class="min-w-0 flex-1"><div class="flex items-center gap-2"><p class="text-sm font-extrabold ${st.title}">${escapeDashboardHtml(n.title)}</p>${!read ? '<span class="w-2 h-2 rounded-full bg-red-500 shrink-0" title="No leída"></span>' : ''}</div><p class="text-xs text-slate-600 mt-1">${escapeDashboardHtml(n.text)}</p></div>
+                      <div class="flex flex-wrap gap-2 justify-end shrink-0"><button type="button" class="px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 text-[11px] font-bold text-slate-700 hover:text-blue-700" onclick="toggleNotificationRead('${String(n.id).replace(/'/g,"\\'")}')">${read ? 'Marcar no leída' : 'Marcar leída'}</button>${n.action ? `<button type="button" class="px-2.5 py-1.5 rounded-lg bg-blue-600 text-white text-[11px] font-bold hover:bg-blue-700" onclick="openNotificationAction('${String(n.id).replace(/'/g,"\\'")}')">Ver</button>` : ''}</div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function toggleNotificationRead(id) {
+            const state = getNotificationReadState();
+            state[id] = !state[id];
+            saveNotificationReadState(state);
+            renderNotifications();
+        }
+
+        function markAllNotificationsRead() {
+            const state = getNotificationReadState();
+            notificationItems.forEach(n => state[n.id] = true);
+            saveNotificationReadState(state);
+            renderNotifications();
+            showToast('Todas las notificaciones fueron marcadas como leídas.', 'success');
+        }
+
+        function clearNotificationHistory() {
+            try { localStorage.removeItem(getNotificationStorageKey()); } catch (_) {}
+            renderNotifications();
+            showToast('Historial de lectura limpiado.', 'success');
+        }
+
+        function openNotificationAction(id) {
+            const item = notificationItems.find(n => n.id === id);
+            if (!item) return;
+            const state = getNotificationReadState(); state[id] = true; saveNotificationReadState(state);
+            renderNotifications();
+            if (item.action) { try { new Function(item.action)(); } catch (err) { console.error(err); } }
+        }
+
         function refreshAllUI() {
+            if (typeof updateHeaderNotificationBadges === 'function' && typeof getNotificationReadState === 'function') updateHeaderNotificationBadges((notificationItems || []).filter(n => !getNotificationReadState()[n.id]).length);
             updateSidebarBadges();
             updateGPFilterOptions();
             renderDashboard();
@@ -3089,6 +3299,7 @@
             renderSavedSchedules();
             renderProgramRegistration();
             renderClubSection();
+            renderNotifications();
         }
 
         // ==========================================
@@ -3643,6 +3854,9 @@
             }
         }
 
+        function openNotificationsFromHeader() { switchView('notifications'); if (window.innerWidth < 1024) { const sidebar=document.getElementById('sidebar'), overlay=document.getElementById('mobile-overlay'); if(sidebar){sidebar.classList.remove('translate-x-0');sidebar.classList.add('-translate-x-full');} if(overlay) overlay.classList.add('hidden'); } }
+        function updateHeaderNotificationBadges(unread) { ['header-notifications-badge','mobile-header-notifications-badge','sidebar-notifications-badge'].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.textContent=String(unread||0);el.classList.toggle('hidden',!(unread>0));}); }
+
         function switchView(viewName, clubName = null) {
             // Ocultar todas las vistas
             document.querySelectorAll('.view-section').forEach(sec => sec.classList.add('hidden'));
@@ -3675,6 +3889,9 @@
             }
             if (viewName === 'reports') {
                 renderReportsHub();
+            }
+            if (viewName === 'notifications') {
+                renderNotifications();
             }
             if (viewName === 'district-structure') {
                 loadDistrictStructure();
@@ -7483,6 +7700,21 @@ function printProgramRegistration(){const sch=savedSchedules.find(x=>x.id===sele
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',initSidebarScroll);
   else initSidebarScroll();
+})();
+
+        window.renderNotifications = renderNotifications;
+        window.markAllNotificationsRead = markAllNotificationsRead;
+        window.clearNotificationHistory = clearNotificationHistory;
+        window.toggleNotificationRead = toggleNotificationRead;
+        window.openNotificationAction = openNotificationAction;
+</script>
+
+<script id="peniel-etapa25-pwa">
+(function(){
+  if(!('serviceWorker' in navigator)) return;
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('./sw.js').catch(function(err){console.warn('PWA:',err);});
+  });
 })();
 </script>
 </body>
