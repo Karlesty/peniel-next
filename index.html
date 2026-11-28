@@ -401,7 +401,7 @@ input,select,textarea{font-size:16px;}
 </div>
 </div>
 <!-- ========================================================== -->
-<!-- ETAPA 26: BÚSQUEDA GLOBAL                                -->
+<!-- BÚSQUEDA GLOBAL                                -->
 <!-- ========================================================== -->
 <div class="mb-5 bg-white rounded-2xl border border-blue-200/80 shadow-xs p-4 sm:p-5" id="global-search-panel">
   <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
@@ -715,6 +715,19 @@ input,select,textarea{font-size:16px;}
       <button type="button" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700" onclick="markAllNotificationsRead()"><i class="fas fa-check-double"></i> Marcar todas como leídas</button>
       <button type="button" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-xs font-bold text-red-700" onclick="clearNotificationHistory()"><i class="fas fa-broom"></i> Limpiar historial</button>
     </div>
+  </div>
+</div>
+<div class="bg-white p-5 rounded-2xl shadow-xs border border-amber-200/80">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div class="flex items-start gap-3">
+      <span class="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0"><i class="fas fa-bell"></i></span>
+      <div>
+        <h2 class="font-extrabold text-slate-900">Recordatorios automáticos</h2>
+        <p class="text-xs text-slate-500 mt-1">Recibe avisos en este dispositivo cuando haya actividades próximas o tareas pendientes.</p>
+        <p id="auto-reminders-status" class="text-[11px] font-semibold text-slate-500 mt-2">Estado: no activados</p>
+      </div>
+    </div>
+    <button type="button" id="auto-reminders-button" onclick="enableAutomaticReminders()" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-sm"><i class="fas fa-bell"></i> Activar recordatorios</button>
   </div>
 </div>
 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -3241,6 +3254,94 @@ input,select,textarea{font-size:16px;}
             return notifications.sort((a,b) => (priority[a.level] ?? 3) - (priority[b.level] ?? 3) || String(a.timestamp||'').localeCompare(String(b.timestamp||''))).slice(0,30);
         }
 
+        function getAutoReminderStorageKey() {
+            const ctx = getActiveChurchContext();
+            return `peniel_next_auto_reminders_${ctx.churchId}`;
+        }
+
+        function getAutoReminderState() {
+            try { return JSON.parse(localStorage.getItem(getAutoReminderStorageKey()) || '{}'); } catch (_) { return {}; }
+        }
+
+        function saveAutoReminderState(state) {
+            try { localStorage.setItem(getAutoReminderStorageKey(), JSON.stringify(state || {})); } catch (_) {}
+        }
+
+        function updateAutomaticReminderStatus() {
+            const status = document.getElementById('auto-reminders-status');
+            const button = document.getElementById('auto-reminders-button');
+            if (!status || !button) return;
+            if (!('Notification' in window)) {
+                status.textContent = 'Estado: este navegador no admite notificaciones del dispositivo.';
+                button.disabled = true;
+                button.classList.add('opacity-50','cursor-not-allowed');
+                return;
+            }
+            if (Notification.permission === 'granted') {
+                status.textContent = 'Estado: activos en este dispositivo.';
+                status.className = 'text-[11px] font-semibold text-emerald-600 mt-2';
+                button.innerHTML = '<i class="fas fa-check"></i> Recordatorios activos';
+                button.classList.remove('bg-amber-500','hover:bg-amber-600');
+                button.classList.add('bg-emerald-600','hover:bg-emerald-700');
+            } else if (Notification.permission === 'denied') {
+                status.textContent = 'Estado: bloqueados. Debes permitir notificaciones desde la configuración del navegador.';
+                status.className = 'text-[11px] font-semibold text-red-600 mt-2';
+                button.innerHTML = '<i class="fas fa-circle-info"></i> Revisar permisos';
+            } else {
+                status.textContent = 'Estado: no activados';
+            }
+        }
+
+        async function enableAutomaticReminders() {
+            if (!('Notification' in window)) { showToast('Este navegador no admite notificaciones.', 'error'); return; }
+            try {
+                const permission = await Notification.requestPermission();
+                updateAutomaticReminderStatus();
+                if (permission === 'granted') {
+                    showToast('Recordatorios automáticos activados en este dispositivo.', 'success');
+                    runAutomaticReminders(true);
+                } else if (permission === 'denied') {
+                    showToast('Las notificaciones fueron bloqueadas en este navegador.', 'error');
+                }
+            } catch (err) {
+                console.error('Error solicitando notificaciones:', err);
+                showToast('No fue posible activar los recordatorios.', 'error');
+            }
+        }
+
+        function sendAutomaticReminder(item, force=false) {
+            if (!('Notification' in window) || Notification.permission !== 'granted' || !item) return;
+            const state = getAutoReminderState();
+            const key = String(item.id || item.title || 'reminder');
+            const now = Date.now();
+            const last = Number(state[key] || 0);
+            if (!force && now - last < 12 * 60 * 60 * 1000) return;
+            try {
+                const notification = new Notification(item.title || 'Peniel Next', {
+                    body: item.text || 'Tienes un aviso pendiente en Peniel Next.',
+                    icon: './icon-192.png',
+                    badge: './icon-192.png',
+                    tag: `peniel-next-${key}`
+                });
+                notification.onclick = function() {
+                    window.focus();
+                    try { openNotificationAction(key); } catch (_) {}
+                    notification.close();
+                };
+                state[key] = now;
+                saveAutoReminderState(state);
+            } catch (err) { console.warn('No se pudo mostrar el recordatorio:', err); }
+        }
+
+        function runAutomaticReminders(force=false) {
+            if (!currentUser || !cloudReady) return;
+            if (!('Notification' in window) || Notification.permission !== 'granted') return;
+            try {
+                const items = buildNotifications();
+                items.filter(item => item.level === 'danger' || item.level === 'warning').slice(0, 5).forEach(item => sendAutomaticReminder(item, force));
+            } catch (err) { console.warn('Recordatorios automáticos:', err); }
+        }
+
         function renderNotifications() {
             const list = document.getElementById('notifications-list');
             const totalEl = document.getElementById('notifications-total');
@@ -3248,6 +3349,7 @@ input,select,textarea{font-size:16px;}
             const churchEl = document.getElementById('notifications-church');
             const badge = document.getElementById('sidebar-notifications-badge');
             if (!list) return;
+            updateAutomaticReminderStatus();
             const ctx = getActiveChurchContext();
             const state = getNotificationReadState();
             notificationItems = buildNotifications();
@@ -3276,6 +3378,7 @@ input,select,textarea{font-size:16px;}
                     </div>
                 </div>`;
             }).join('');
+            runAutomaticReminders(false);
         }
 
         function toggleNotificationRead(id) {
@@ -3875,7 +3978,7 @@ input,select,textarea{font-size:16px;}
         function updateHeaderNotificationBadges(unread) { ['header-notifications-badge','mobile-header-notifications-badge','sidebar-notifications-badge'].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.textContent=String(unread||0);el.classList.toggle('hidden',!(unread>0));}); }
 
         // ==========================================================
-        // ETAPA 26: BÚSQUEDA GLOBAL
+        // BÚSQUEDA GLOBAL
         // ==========================================================
         function globalSearchNormalize(value) {
             return String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
@@ -7870,7 +7973,7 @@ function printProgramRegistration(){const sch=savedSchedules.find(x=>x.id===sele
 </div>
 </div>
 </div>
-<script>\n// Etapa 12: iconos uniformes para botones generados dinámicamente.\n(function(){\n  const iconRules = [\n    [/^Nueva actividad/i,'fa-plus'],\n    [/^Guardar(?:\s|$)/i,'fa-floppy-disk'],\n    [/^Editar(?:\s|$)/i,'fa-pen-to-square'],\n    [/^Eliminar(?:\s|$)/i,'fa-trash-can'],\n    [/^Borrar todo/i,'fa-trash-can'],\n    [/^Buscar/i,'fa-magnifying-glass'],\n    [/^Limpiar/i,'fa-broom'],\n    [/^Filtrar/i,'fa-filter'],\n    [/^Detalles?/i,'fa-eye'],\n    [/^Ver participantes/i,'fa-users'],\n    [/^Exportar/i,'fa-file-export'],\n    [/^Imprimir/i,'fa-print'],\n    [/^Descargar/i,'fa-download'],\n    [/^Cerrar/i,'fa-xmark'],\n    [/^Cancelar/i,'fa-xmark'],\n    [/^Confirmar/i,'fa-check'],\n    [/^Añadir/i,'fa-plus'],\n    [/^Nuevo/i,'fa-plus'],\n    [/^Guardar y Aplicar/i,'fa-check'],\n    [/^Cambiar/i,'fa-right-left'],\n    [/^Hoy$/i,'fa-calendar-day'],\n  ];\n  function decorate(root){\n    if(!root || !root.querySelectorAll) return;\n    root.querySelectorAll('button').forEach(btn=>{\n      if(btn.querySelector('i')) return;\n      const text=(btn.textContent||'').trim().replace(/\\s+/g,' ');\n      if(!text) return;\n      const rule=iconRules.find(([rx])=>rx.test(text));\n      if(!rule) return;\n      const i=document.createElement('i');\n      i.className='fas '+rule[1]+' mr-1';\n      btn.insertBefore(i,btn.firstChild);\n    });\n  }\n  document.addEventListener('DOMContentLoaded',()=>{\n    decorate(document);\n    const observer=new MutationObserver(muts=>muts.forEach(m=>m.addedNodes.forEach(n=>{\n      if(n.nodeType===1) decorate(n);\n    })));\n    observer.observe(document.body,{childList:true,subtree:true});\n  });\n})();\n</script><script id="peniel-sidebar-scroll-js">
+<script>\n// Iconos uniformes para botones generados dinámicamente.\n(function(){\n  const iconRules = [\n    [/^Nueva actividad/i,'fa-plus'],\n    [/^Guardar(?:\s|$)/i,'fa-floppy-disk'],\n    [/^Editar(?:\s|$)/i,'fa-pen-to-square'],\n    [/^Eliminar(?:\s|$)/i,'fa-trash-can'],\n    [/^Borrar todo/i,'fa-trash-can'],\n    [/^Buscar/i,'fa-magnifying-glass'],\n    [/^Limpiar/i,'fa-broom'],\n    [/^Filtrar/i,'fa-filter'],\n    [/^Detalles?/i,'fa-eye'],\n    [/^Ver participantes/i,'fa-users'],\n    [/^Exportar/i,'fa-file-export'],\n    [/^Imprimir/i,'fa-print'],\n    [/^Descargar/i,'fa-download'],\n    [/^Cerrar/i,'fa-xmark'],\n    [/^Cancelar/i,'fa-xmark'],\n    [/^Confirmar/i,'fa-check'],\n    [/^Añadir/i,'fa-plus'],\n    [/^Nuevo/i,'fa-plus'],\n    [/^Guardar y Aplicar/i,'fa-check'],\n    [/^Cambiar/i,'fa-right-left'],\n    [/^Hoy$/i,'fa-calendar-day'],\n  ];\n  function decorate(root){\n    if(!root || !root.querySelectorAll) return;\n    root.querySelectorAll('button').forEach(btn=>{\n      if(btn.querySelector('i')) return;\n      const text=(btn.textContent||'').trim().replace(/\\s+/g,' ');\n      if(!text) return;\n      const rule=iconRules.find(([rx])=>rx.test(text));\n      if(!rule) return;\n      const i=document.createElement('i');\n      i.className='fas '+rule[1]+' mr-1';\n      btn.insertBefore(i,btn.firstChild);\n    });\n  }\n  document.addEventListener('DOMContentLoaded',()=>{\n    decorate(document);\n    const observer=new MutationObserver(muts=>muts.forEach(m=>m.addedNodes.forEach(n=>{\n      if(n.nodeType===1) decorate(n);\n    })));\n    observer.observe(document.body,{childList:true,subtree:true});\n  });\n})();\n</script><script id="peniel-sidebar-scroll-js">
 (function(){
   function initSidebarScroll(){
     const sidebar=document.getElementById('sidebar');
@@ -7891,8 +7994,25 @@ function printProgramRegistration(){const sch=savedSchedules.find(x=>x.id===sele
         window.clearNotificationHistory = clearNotificationHistory;
         window.toggleNotificationRead = toggleNotificationRead;
         window.openNotificationAction = openNotificationAction;
+        window.enableAutomaticReminders = enableAutomaticReminders;
+        window.runAutomaticReminders = runAutomaticReminders;
+        window.updateAutomaticReminderStatus = updateAutomaticReminderStatus;
 </script>
 
+<script id="peniel-auto-reminder-cycle">
+(function(){
+  function startAutomaticReminderCycle(){
+    if(typeof window.runAutomaticReminders !== 'function') return;
+    setTimeout(function(){ window.runAutomaticReminders(false); }, 3500);
+    setInterval(function(){ window.runAutomaticReminders(false); }, 5 * 60 * 1000);
+    document.addEventListener('visibilitychange', function(){
+      if(!document.hidden) setTimeout(function(){ window.runAutomaticReminders(false); }, 500);
+    });
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',startAutomaticReminderCycle);
+  else startAutomaticReminderCycle();
+})();
+</script>
 <script id="peniel-etapa25-pwa">
 (function(){
   if(!('serviceWorker' in navigator)) return;
