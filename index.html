@@ -417,6 +417,21 @@
   </div>
 </div>
 
+<!-- Alertas y recordatorios -->
+<div class="bg-white p-5 sm:p-6 rounded-2xl shadow-xs border border-slate-200/80">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+    <div>
+      <div class="flex items-center gap-2">
+        <span class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center"><i class="fas fa-bell"></i></span>
+        <h2 class="font-extrabold text-slate-900 text-lg">Alertas y recordatorios</h2>
+      </div>
+      <p class="text-xs text-slate-500 mt-1">Avisos importantes de <span id="dashboard-alerts-church">la iglesia activa</span>.</p>
+    </div>
+    <span id="dashboard-alerts-count" class="inline-flex items-center justify-center text-[10px] font-black uppercase tracking-wider text-amber-700 bg-amber-50 px-2.5 py-1.5 rounded-lg">0 alertas</span>
+  </div>
+  <div id="dashboard-alerts-list" class="space-y-2.5"></div>
+</div>
+
 <!-- Tarjetas de Métricas (KPIs) -->
 <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
 <!-- Total Miembros -->
@@ -3415,6 +3430,93 @@
             return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
         }
 
+        function renderDashboardAlerts(data) {
+            const container = document.getElementById('dashboard-alerts-list');
+            const countEl = document.getElementById('dashboard-alerts-count');
+            const churchEl = document.getElementById('dashboard-alerts-church');
+            if (!container || !countEl) return;
+
+            const alerts = Array.isArray(data) ? data : [];
+            const ctx = getActiveChurchContext();
+            if (churchEl) churchEl.textContent = ctx.churchName || 'la iglesia activa';
+            countEl.textContent = `${alerts.length} ${alerts.length === 1 ? 'alerta' : 'alertas'}`;
+
+            if (!alerts.length) {
+                countEl.className = 'inline-flex items-center justify-center text-[10px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-1.5 rounded-lg';
+                container.innerHTML = `<div class="flex items-center gap-3 p-4 rounded-xl bg-emerald-50 border border-emerald-100"><span class="w-9 h-9 rounded-xl bg-white text-emerald-600 flex items-center justify-center shrink-0"><i class="fas fa-circle-check"></i></span><div><p class="text-sm font-bold text-emerald-900">Todo está al día</p><p class="text-xs text-emerald-700 mt-0.5">No hay alertas importantes para esta iglesia.</p></div></div>`;
+                return;
+            }
+
+            countEl.className = `inline-flex items-center justify-center text-[10px] font-black uppercase tracking-wider ${alerts.some(a=>a.level==='danger') ? 'text-red-700 bg-red-50' : 'text-amber-700 bg-amber-50'} px-2.5 py-1.5 rounded-lg`;
+            const styles = {
+                danger: { box:'border-red-200 bg-red-50/70', icon:'bg-red-100 text-red-700', title:'text-red-900', text:'text-red-700' },
+                warning:{ box:'border-amber-200 bg-amber-50/70', icon:'bg-amber-100 text-amber-700', title:'text-amber-900', text:'text-amber-700' },
+                info:   { box:'border-blue-200 bg-blue-50/70', icon:'bg-blue-100 text-blue-700', title:'text-blue-900', text:'text-blue-700' }
+            };
+            container.innerHTML = alerts.map(a => {
+                const st = styles[a.level] || styles.info;
+                return `<div class="flex items-center gap-3 p-3.5 rounded-xl border ${st.box}">
+                    <span class="w-10 h-10 rounded-xl ${st.icon} flex items-center justify-center shrink-0"><i class="fas ${a.icon || 'fa-bell'}"></i></span>
+                    <div class="min-w-0 flex-1"><p class="text-sm font-bold ${st.title}">${escapeDashboardHtml(a.title)}</p><p class="text-xs ${st.text} mt-0.5">${escapeDashboardHtml(a.text)}</p></div>
+                    ${a.action ? `<button type="button" onclick="${a.action}" class="shrink-0 px-3 py-1.5 rounded-lg bg-white/80 border border-slate-200 text-xs font-bold text-slate-700 hover:bg-white hover:text-blue-700 transition-colors">Ver</button>` : ''}
+                </div>`;
+            }).join('');
+        }
+
+        function buildDashboardAlerts({upcoming, churchFin, expense, budgetTotal, pct, attActivities}) {
+            const alerts = [];
+            const today = new Date();
+            const todayKey = today.toISOString().slice(0,10);
+            const ctx = getActiveChurchContext();
+            const schedulesUpcoming = (savedSchedules || []).filter(s => {
+                const id = s.churchId || normalizeChurchId(s.churchName || '');
+                return id === ctx.churchId && s.date && s.date >= todayKey;
+            });
+
+            const noAttendance = (activities || []).filter(a => {
+                const id = a.churchId || normalizeChurchId(a.churchName || '');
+                if (id !== ctx.churchId || !a.startDate || a.startDate > todayKey || getEffectiveActivityStatus(a) === 'Cancelada') return false;
+                const st = getActivityAttendanceStats(a);
+                return st.total === 0;
+            });
+            if (noAttendance.length) {
+                alerts.push({level:'warning',icon:'fa-clipboard-question',title:`${noAttendance.length} actividad${noAttendance.length===1?'':'es'} sin asistencia`,text:`Hay actividades realizadas o iniciadas sin registro de asistencia.`,action:"switchView('attendance-history')"});
+            }
+
+            const lowParticipation = (upcoming || []).filter(a => {
+                const cap = Number(a.maxCapacity || 0);
+                if (!cap) return false;
+                const participants = Array.isArray(a.participants) ? a.participants.length : 0;
+                return participants < cap && (participants / cap) <= 0.25;
+            });
+            if (lowParticipation.length) {
+                alerts.push({level:'info',icon:'fa-user-group',title:`${lowParticipation.length} actividad${lowParticipation.length===1?'':'es'} con pocos participantes`,text:`Revisa los cupos y confirma la participación antes de la fecha.`,action:"switchView('activities')"});
+            }
+
+            if (upcoming.length) {
+                const next = upcoming[0];
+                const diff = Math.ceil((new Date(`${next.startDate}T00:00:00`) - new Date(`${todayKey}T00:00:00`)) / 86400000);
+                if (diff <= 3) alerts.push({level:'warning',icon:'fa-calendar-day',title:'Actividad próxima',text:`${next.name || next.type || 'Actividad JA'} ${diff <= 0 ? 'es hoy' : `es en ${diff} día${diff===1?'':'s'}`}.`,action:`viewActivityDetails('${String(next.id).replace(/'/g,"\\'")}')`});
+            }
+
+            if (schedulesUpcoming.length === 0) {
+                alerts.push({level:'info',icon:'fa-calendar-plus',title:'No hay programaciones próximas',text:'Genera una programación para las próximas actividades de la iglesia.',action:"switchView('scheduler')"});
+            }
+
+            if (!budgetTotal) {
+                alerts.push({level:'info',icon:'fa-wallet',title:'Presupuesto pendiente',text:`No hay presupuesto registrado para ${today.getFullYear()} en esta iglesia.`,action:"switchView('finances')"});
+            } else if (expense > budgetTotal) {
+                alerts.push({level:'danger',icon:'fa-triangle-exclamation',title:'Presupuesto excedido',text:`Los gastos superan el presupuesto en ${new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0}).format(expense-budgetTotal)}.`,action:"switchView('finances')"});
+            } else if (pct >= 80) {
+                alerts.push({level:'warning',icon:'fa-chart-pie',title:'Presupuesto próximo a agotarse',text:`La ejecución financiera está en ${pct}%.`,action:"switchView('finances')"});
+            }
+
+            if (!attActivities.length && upcoming.length) {
+                alerts.push({level:'info',icon:'fa-chart-line',title:'Sin registros de asistencia',text:'Aún no hay registros de asistencia en las actividades de esta iglesia.',action:"switchView('attendance-history')"});
+            }
+            return alerts.slice(0, 6);
+        }
+
         function renderDashboardEnhanced() {
             const ctx = getActiveChurchContext();
             const churchName = ctx.churchName || 'Peniel';
@@ -3466,6 +3568,7 @@
             const ap=document.getElementById('dash-attendance-percent');if(ap)ap.textContent=attPct+'%';
             const ad=document.getElementById('dash-attendance-detail');if(ad)ad.textContent=attTotals.total?`${attTotals.present} presentes de ${attTotals.total} registros`:'Sin registros todavía';
             const al=document.getElementById('dash-attendance-list');if(al)al.innerHTML=`<div class="p-4 rounded-xl bg-emerald-50 border border-emerald-100"><p class="text-[10px] font-bold uppercase text-emerald-700">Presentes</p><p class="text-xl font-extrabold text-emerald-900 mt-1">${attTotals.present}</p></div><div class="p-4 rounded-xl bg-red-50 border border-red-100"><p class="text-[10px] font-bold uppercase text-red-700">No asistieron</p><p class="text-xl font-extrabold text-red-900 mt-1">${attTotals.absent}</p></div><div class="p-4 rounded-xl bg-amber-50 border border-amber-100"><p class="text-[10px] font-bold uppercase text-amber-700">Justificados</p><p class="text-xl font-extrabold text-amber-900 mt-1">${attTotals.justified}</p></div>`;
+            renderDashboardAlerts(buildDashboardAlerts({upcoming, churchFin, expense, budgetTotal, pct, attActivities}));
         }
 
         function renderDashboard() {
@@ -6914,6 +7017,7 @@ function printProgramRegistration(){const sch=savedSchedules.find(x=>x.id===sele
 
         Object.assign(window, {
             switchView,
+            quickAction,
             openMemberModal,
             closeMemberModal,
             saveMemberForm,
