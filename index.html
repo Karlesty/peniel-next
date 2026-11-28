@@ -854,6 +854,43 @@
     <div id="finance-report-empty" class="hidden text-center py-8 text-slate-400 text-sm">No hay movimientos para los filtros seleccionados.</div>
   </div>
 </div>
+
+<div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs mt-6" id="finance-budget-panel">
+  <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4">
+    <div>
+      <h2 class="font-extrabold text-slate-900">Presupuesto financiero</h2>
+      <p class="text-xs text-slate-500">Presupuesto anual de la iglesia activa y comparación contra los gastos ejecutados.</p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <span class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-50 text-blue-800 text-xs font-bold"><i class="fas fa-church"></i><span id="finance-budget-church">Peniel</span></span>
+      <button type="button" onclick="exportFinanceBudgetToExcel()" class="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold"><i class="fas fa-file-excel mr-1"></i>Excel</button>
+    </div>
+  </div>
+  <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+    <div class="admin-only"><label class="block text-xs font-bold mb-1">Año *</label><select id="finance-budget-year" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm"></select></div>
+    <div class="admin-only"><label class="block text-xs font-bold mb-1">Categoría *</label><select id="finance-budget-category" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm"><option>Ofrendas</option><option>Donaciones</option><option>Actividades</option><option>Eventos</option><option>Materiales</option><option>Alimentación</option><option>Transporte</option><option>Programas</option><option>Mantenimiento</option><option>Otros ingresos</option><option>Otros gastos</option></select></div>
+    <div class="admin-only"><label class="block text-xs font-bold mb-1">Valor presupuestado *</label><input id="finance-budget-amount" type="number" min="0" step="0.01" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm" placeholder="0"></div>
+    <div class="admin-only flex items-end"><button type="button" onclick="saveFinanceBudget()" class="w-full px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold"><i class="fas fa-save mr-1"></i>Guardar presupuesto</button></div>
+  </div>
+  <div class="flex flex-wrap items-center gap-3 mb-4">
+    <label class="text-xs font-bold text-slate-600">Año a consultar:</label>
+    <select id="finance-budget-view-year" onchange="renderFinanceBudget()" class="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-sm"></select>
+    <button type="button" onclick="clearFinanceBudgetForm()" class="admin-only px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold">Limpiar formulario</button>
+  </div>
+  <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+    <div class="rounded-2xl border border-blue-200 bg-blue-50 p-4"><p class="text-[10px] uppercase font-extrabold text-blue-700">Presupuesto</p><p id="finance-budget-total" class="text-xl font-black text-blue-800 mt-1">$0</p></div>
+    <div class="rounded-2xl border border-red-200 bg-red-50 p-4"><p class="text-[10px] uppercase font-extrabold text-red-700">Ejecutado</p><p id="finance-budget-executed" class="text-xl font-black text-red-800 mt-1">$0</p></div>
+    <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4"><p class="text-[10px] uppercase font-extrabold text-emerald-700">Disponible</p><p id="finance-budget-available" class="text-xl font-black text-emerald-800 mt-1">$0</p></div>
+    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4"><p class="text-[10px] uppercase font-extrabold text-slate-500">Ejecución</p><p id="finance-budget-percent" class="text-xl font-black text-slate-800 mt-1">0%</p></div>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full min-w-[900px] text-sm">
+      <thead><tr class="border-b border-slate-200 text-left"><th class="px-3 py-3 text-[10px] uppercase text-slate-500">Categoría</th><th class="px-3 py-3 text-[10px] uppercase text-slate-500">Presupuesto</th><th class="px-3 py-3 text-[10px] uppercase text-slate-500">Ejecutado</th><th class="px-3 py-3 text-[10px] uppercase text-slate-500">Disponible</th><th class="px-3 py-3 text-[10px] uppercase text-slate-500">Ejecución</th><th class="px-3 py-3 text-[10px] uppercase text-slate-500">Estado</th><th class="px-3 py-3 text-[10px] uppercase text-slate-500 text-center">Acciones</th></tr></thead>
+      <tbody id="finance-budget-body"></tbody>
+    </table>
+  </div>
+  <div id="finance-budget-empty" class="hidden text-center py-8 text-slate-400 text-sm">No hay presupuestos registrados para este año en la iglesia activa.</div>
+</div>
 </section>
 
 <section id="view-clubs" class="view-section hidden space-y-6 fade-in">
@@ -2206,6 +2243,7 @@
         let programRegistrations = [];
         let selectedProgramRegistrationScheduleId = "";
         let financeRecords = [];
+        let financeBudgets = [];
         let clubActivities = {};
         let currentDraftSchedule = null;
         let activeClubTab = 'Aventureros';
@@ -2632,8 +2670,28 @@
                 if (writes.length) await Promise.allSettled(writes);
                 financeRecords = migrated.filter(item => (item.churchId || normalizeChurchId(item.churchName || '')) === ctx.churchId);
                 financeRecords.sort((a,b) => String(b.date || '').localeCompare(String(a.date || '')) || String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
-                if (!document.getElementById('view-finances')?.classList.contains('hidden')) renderFinances();
+                if (!document.getElementById('view-finances')?.classList.contains('hidden')) { renderFinances(); renderFinanceBudget(); }
             }, err => console.error('Error finanzas nube:', err));
+
+            // Presupuestos financieros por iglesia
+            const financeBudgetCol = collection(db, 'artifacts', appId, 'public', 'data', 'ja_finance_budgets');
+            onSnapshot(financeBudgetCol, async snap => {
+                const ctx = getActiveChurchContext();
+                const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                const writes = [];
+                const migrated = all.map(item => {
+                    if (!item.churchId || !item.churchName) {
+                        const fixed = { ...item, churchId: normalizeChurchId('Peniel'), churchName: 'Peniel' };
+                        if (isAdmin() && item.id) writes.push(setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'ja_finance_budgets', item.id), { churchId: fixed.churchId, churchName: fixed.churchName }, { merge: true }));
+                        return fixed;
+                    }
+                    return item;
+                });
+                if (writes.length) await Promise.allSettled(writes);
+                financeBudgets = migrated.filter(item => (item.churchId || normalizeChurchId(item.churchName || '')) === ctx.churchId);
+                financeBudgets.sort((a,b) => Number(b.year||0)-Number(a.year||0) || String(a.category||'').localeCompare(String(b.category||''),'es'));
+                if (!document.getElementById('view-finances')?.classList.contains('hidden')) renderFinanceBudget();
+            }, err => console.error('Error presupuestos financieros:', err));
 
             // 5. Escuchar Actividades de Clubes en Tiempo Real
             const clubsRef = doc(db, 'artifacts', appId, 'public', 'data', 'ja_settings', 'clubs');
@@ -6232,6 +6290,72 @@
         function clearFinancialReportFilters(){['finance-report-type','finance-report-category','finance-report-from','finance-report-to'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});renderFinancialReport();}
         function exportFinancialReportToExcel(){const ctx=getActiveChurchContext(),rows=getFinancialReportRows();if(!rows.length){showToast('No hay movimientos para exportar con los filtros actuales.','error');return;}const income=rows.filter(x=>x.type==='Ingreso').reduce((s,x)=>s+Number(x.amount||0),0),expense=rows.filter(x=>x.type==='Gasto').reduce((s,x)=>s+Number(x.amount||0),0);downloadCsv(`reporte_financiero_${normalizeChurchId(ctx.churchName)}.csv`,['Fecha','Tipo','Concepto','Categoría','Responsable','Valor','Observaciones','Iglesia'],rows.map(x=>[x.date||'',x.type||'',x.concept||'',x.category||'',x.responsible||'',Number(x.amount||0),x.notes||'',ctx.churchName]).concat([['','','TOTAL INGRESOS','','',income,'',ctx.churchName],['','','TOTAL GASTOS','','',expense,'',ctx.churchName],['','','BALANCE','','',income-expense,'',ctx.churchName]]));}
         function printFinancialReport(){renderFinancialReport();const title=document.title;document.title=`Reporte financiero - ${getActiveChurchContext().churchName}`;window.print();setTimeout(()=>document.title=title,500);}
+
+
+        // ==========================================
+        // 9E. PRESUPUESTO FINANCIERO POR IGLESIA
+        // ==========================================
+        const FINANCE_BUDGET_CATEGORIES = ['Ofrendas','Donaciones','Actividades','Eventos','Materiales','Alimentación','Transporte','Programas','Mantenimiento','Otros ingresos','Otros gastos'];
+        function initFinanceBudgetYears(){
+            const current = new Date().getFullYear();
+            ['finance-budget-year','finance-budget-view-year'].forEach(id=>{
+                const el=document.getElementById(id); if(!el) return;
+                const old=el.value;
+                el.innerHTML='';
+                for(let y=current-1;y<=current+5;y++) el.insertAdjacentHTML('beforeend',`<option value="${y}">${y}</option>`);
+                el.value=old && [...el.options].some(o=>o.value===old) ? old : String(current);
+            });
+        }
+        function clearFinanceBudgetForm(){
+            const amount=document.getElementById('finance-budget-amount'); if(amount) amount.value='';
+            const cat=document.getElementById('finance-budget-category'); if(cat) cat.value='Ofrendas';
+        }
+        function getFinanceBudgetYear(){return Number(document.getElementById('finance-budget-view-year')?.value||new Date().getFullYear());}
+        function renderFinanceBudget(){
+            initFinanceBudgetYears();
+            const ctx=getActiveChurchContext(), year=getFinanceBudgetYear();
+            const church=document.getElementById('finance-budget-church'); if(church) church.textContent=ctx.churchName;
+            const rows=financeBudgets.filter(x=>Number(x.year)===year && (x.churchId||normalizeChurchId(x.churchName||''))===ctx.churchId);
+            const executedMap={};
+            financeRecords.filter(x=>String(x.date||'').slice(0,4)===String(year) && x.type==='Gasto').forEach(x=>{
+                const c=x.category||'Sin categoría'; executedMap[c]=(executedMap[c]||0)+Number(x.amount||0);
+            });
+            const totalBudget=rows.reduce((s,x)=>s+Number(x.amount||0),0);
+            const totalExecuted=rows.reduce((s,x)=>s+Number(executedMap[x.category||'Sin categoría']||0),0);
+            const available=totalBudget-totalExecuted;
+            const pct=totalBudget>0 ? (totalExecuted/totalBudget)*100 : 0;
+            const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+            set('finance-budget-total',formatFinanceMoney(totalBudget)); set('finance-budget-executed',formatFinanceMoney(totalExecuted)); set('finance-budget-available',formatFinanceMoney(available)); set('finance-budget-percent',`${pct.toFixed(1)}%`);
+            const body=document.getElementById('finance-budget-body'), empty=document.getElementById('finance-budget-empty');
+            if(!rows.length){if(body)body.innerHTML='';if(empty)empty.classList.remove('hidden');return;} if(empty)empty.classList.add('hidden');
+            if(body) body.innerHTML=rows.map(x=>{
+                const cat=x.category||'Sin categoría', budget=Number(x.amount||0), executed=Number(executedMap[cat]||0), avail=budget-executed, ep=budget>0?(executed/budget)*100:0, over=executed>budget;
+                return `<tr class="border-b border-slate-100 hover:bg-slate-50"><td class="px-3 py-3 font-semibold text-slate-800">${escapeActivityHtml(cat)}</td><td class="px-3 py-3 text-blue-700 font-bold">${formatFinanceMoney(budget)}</td><td class="px-3 py-3 text-red-700 font-bold">${formatFinanceMoney(executed)}</td><td class="px-3 py-3 font-bold ${avail<0?'text-red-700':'text-emerald-700'}">${formatFinanceMoney(avail)}</td><td class="px-3 py-3 font-bold">${ep.toFixed(1)}%</td><td class="px-3 py-3"><span class="px-2 py-1 rounded-full text-[10px] font-extrabold ${over?'bg-red-100 text-red-700':'bg-emerald-100 text-emerald-700'}">${over?'SOBREPASADO':'DENTRO DEL PRESUPUESTO'}</span></td><td class="px-3 py-3 text-center admin-only"><button type="button" onclick="editFinanceBudget('${x.id}')" class="px-2 py-1 rounded-lg bg-blue-50 text-blue-700 text-[11px] font-bold mr-1">Editar</button><button type="button" onclick="deleteFinanceBudget('${x.id}')" class="px-2 py-1 rounded-lg bg-red-50 text-red-700 text-[11px] font-bold">Borrar</button></td></tr>`;
+            }).join(''); applyRoleVisibility();
+        }
+        async function saveFinanceBudget(){
+            if(!isAdmin()||!db||!currentUser)return;
+            const ctx=getActiveChurchContext(), year=Number(document.getElementById('finance-budget-year')?.value||new Date().getFullYear()), category=document.getElementById('finance-budget-category')?.value||'', amount=Number(document.getElementById('finance-budget-amount')?.value||0);
+            if(!category||amount<0){showToast('Completa la categoría y un valor válido.','error');return;}
+            const existing=financeBudgets.find(x=>Number(x.year)===year && x.category===category && (x.churchId||normalizeChurchId(x.churchName||''))===ctx.churchId);
+            const id=existing?.id||`budget_${ctx.churchId}_${year}_${normalizeChurchId(category)}`;
+            const data={id,year,category,amount,churchId:ctx.churchId,churchName:ctx.churchName,updatedAt:new Date().toISOString(),createdAt:existing?.createdAt||new Date().toISOString()};
+            try{await setDoc(doc(db,'artifacts',appId,'public','data','ja_finance_budgets',id),data,{merge:true});const i=financeBudgets.findIndex(x=>x.id===id);if(i>=0)financeBudgets[i]=data;else financeBudgets.push(data);document.getElementById('finance-budget-view-year').value=String(year);clearFinanceBudgetForm();renderFinanceBudget();showToast('Presupuesto guardado.','success');}catch(e){console.error(e);showToast('No se pudo guardar el presupuesto.','error');}
+        }
+        function editFinanceBudget(id){
+            if(!isAdmin())return; const x=financeBudgets.find(v=>v.id===id); if(!x)return; const ctx=getActiveChurchContext(); if((x.churchId||normalizeChurchId(x.churchName||''))!==ctx.churchId)return;
+            document.getElementById('finance-budget-year').value=String(x.year||new Date().getFullYear()); document.getElementById('finance-budget-view-year').value=String(x.year||new Date().getFullYear()); document.getElementById('finance-budget-category').value=x.category||'Ofrendas'; document.getElementById('finance-budget-amount').value=x.amount??''; document.getElementById('finance-budget-panel').scrollIntoView({behavior:'smooth',block:'start'});
+        }
+        async function deleteFinanceBudget(id){
+            if(!isAdmin()||!db||!currentUser)return; const x=financeBudgets.find(v=>v.id===id); if(!x)return; const ctx=getActiveChurchContext(); if((x.churchId||normalizeChurchId(x.churchName||''))!==ctx.churchId){showToast('Este presupuesto pertenece a otra iglesia.','error');return;}
+            openConfirmModal('Borrar presupuesto','¿Deseas borrar este presupuesto?',async()=>{try{await deleteDoc(doc(db,'artifacts',appId,'public','data','ja_finance_budgets',id));financeBudgets=financeBudgets.filter(v=>v.id!==id);renderFinanceBudget();showToast('Presupuesto borrado.','success');}catch(e){console.error(e);showToast('No se pudo borrar el presupuesto.','error');}});
+        }
+        function exportFinanceBudgetToExcel(){
+            const ctx=getActiveChurchContext(),year=getFinanceBudgetYear(),rows=financeBudgets.filter(x=>Number(x.year)===year && (x.churchId||normalizeChurchId(x.churchName||''))===ctx.churchId); if(!rows.length){showToast('No hay presupuestos para exportar en este año.','error');return;}
+            const executed={}; financeRecords.filter(x=>String(x.date||'').slice(0,4)===String(year)&&x.type==='Gasto').forEach(x=>{executed[x.category||'Sin categoría']=(executed[x.category||'Sin categoría']||0)+Number(x.amount||0);});
+            downloadCsv(`presupuesto_financiero_${normalizeChurchId(ctx.churchName)}_${year}.csv`,['Año','Iglesia','Categoría','Presupuesto','Ejecutado','Disponible','Ejecución %','Estado'],rows.map(x=>{const b=Number(x.amount||0),e=Number(executed[x.category||'Sin categoría']||0);return [year,ctx.churchName,x.category||'',b,e,b-e,b?((e/b)*100).toFixed(1):'0.0',e>b?'SOBREPASADO':'DENTRO DEL PRESUPUESTO'];}));
+        }
+        initFinanceBudgetYears();
 
 
         // ==========================================
