@@ -86,10 +86,14 @@
 }
 </style><style id="peniel-sidebar-scroll-fix">
 /* Etapa 18 - desplazamiento independiente del menú lateral */
+#sidebar{overflow-y:auto !important; overflow-x:hidden !important; justify-content:flex-start !important; scrollbar-width:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; touch-action:pan-y;}
+#sidebar > div:first-child{min-height:max-content;}
+#main-nav{overflow:visible !important; flex-shrink:0;}
 @media (min-width: 1024px){
-  #sidebar{overflow-y:auto !important; overflow-x:hidden !important; justify-content:flex-start !important; scrollbar-width:auto; overscroll-behavior:contain;}
-  #sidebar > div:first-child{min-height:max-content;}
-  #main-nav{overflow:visible !important; flex-shrink:0;}
+  #sidebar{scrollbar-width:auto;}
+}
+@media (max-width: 1023px){
+  #sidebar{height:100dvh !important; max-height:100dvh !important;}
 }
 #sidebar::-webkit-scrollbar{width:10px;}
 #sidebar::-webkit-scrollbar-track{background:#0f172a;}
@@ -7362,6 +7366,9 @@ input,select,textarea{font-size:16px;}
         }
 
         // Exponer funciones al ámbito global window para eventos inline en HTML (necesario en type="module")
+        // Corrección Etapa 25: acciones rápidas y campana superior funcionan también en móvil/PWA.
+        window.quickAction = quickAction;
+        window.openNotificationsFromHeader = openNotificationsFromHeader;
         // Actualiza el estado visual automáticamente cada minuto.
         // No cambia el valor guardado en Firestore.
         setInterval(() => {
