@@ -400,6 +400,29 @@ input,select,textarea{font-size:16px;}
 </select>
 </div>
 </div>
+<!-- ========================================================== -->
+<!-- ETAPA 26: BÚSQUEDA GLOBAL                                -->
+<!-- ========================================================== -->
+<div class="mb-5 bg-white rounded-2xl border border-blue-200/80 shadow-xs p-4 sm:p-5" id="global-search-panel">
+  <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+    <div class="min-w-0">
+      <div class="flex items-center gap-2">
+        <span class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0"><i class="fas fa-magnifying-glass"></i></span>
+        <div><p class="text-xs font-extrabold uppercase tracking-wider text-blue-700">Etapa 26</p><h2 class="text-base sm:text-lg font-extrabold text-slate-900">Búsqueda Global</h2></div>
+      </div>
+      <p class="text-xs text-slate-500 mt-2 ml-11">Busca miembros, ministerios, actividades, programaciones y finanzas de la iglesia activa.</p>
+    </div>
+    <div class="w-full lg:w-[min(100%,560px)] relative">
+      <div class="relative">
+        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+        <input id="global-search-input" type="search" autocomplete="off" enterkeyhint="search" class="w-full pl-11 pr-20 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none" placeholder="Escribe un nombre, actividad, programa..." aria-label="Búsqueda global" />
+        <kbd class="hidden sm:block absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 bg-white border border-slate-200 rounded-md px-1.5 py-1">Ctrl K</kbd>
+        <button type="button" id="global-search-clear" class="hidden absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg text-slate-400 hover:bg-slate-200 hover:text-slate-700" aria-label="Limpiar búsqueda"><i class="fas fa-xmark"></i></button>
+      </div>
+      <div id="global-search-results" class="hidden absolute left-0 right-0 top-[calc(100%+8px)] z-[60] bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden max-h-[min(70vh,520px)] overflow-y-auto"></div>
+    </div>
+  </div>
+</div>
 <!-- ========================================== -->
 <!-- VISTA 1: DASHBOARD / RESUMEN GENERAL       -->
 <!-- ========================================== -->
@@ -3861,6 +3884,167 @@ input,select,textarea{font-size:16px;}
         function openNotificationsFromHeader() { switchView('notifications'); if (window.innerWidth < 1024) { const sidebar=document.getElementById('sidebar'), overlay=document.getElementById('mobile-overlay'); if(sidebar){sidebar.classList.remove('translate-x-0');sidebar.classList.add('-translate-x-full');} if(overlay) overlay.classList.add('hidden'); } }
         function updateHeaderNotificationBadges(unread) { ['header-notifications-badge','mobile-header-notifications-badge','sidebar-notifications-badge'].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.textContent=String(unread||0);el.classList.toggle('hidden',!(unread>0));}); }
 
+        // ==========================================================
+        // ETAPA 26: BÚSQUEDA GLOBAL
+        // ==========================================================
+        function globalSearchNormalize(value) {
+            return String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+        }
+
+        function globalSearchText(value) {
+            if (value === null || value === undefined) return '';
+            if (Array.isArray(value)) return value.map(globalSearchText).join(' ');
+            if (typeof value === 'object') return Object.values(value).map(globalSearchText).join(' ');
+            return String(value);
+        }
+
+        function globalSearchEscape(value) {
+            return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+        }
+
+        function globalSearchActiveMembers() {
+            return (Array.isArray(members) ? members : []).filter(isMemberInActiveChurch);
+        }
+
+        function globalSearchBuildIndex() {
+            const results = [];
+            const activeMembers = globalSearchActiveMembers();
+            activeMembers.forEach(m => {
+                const roles = [
+                    ...(Array.isArray(m.roles) ? m.roles : []),
+                    ...Object.entries(m.clubRoles || {}).map(([club, role]) => `${club} ${role}`)
+                ].filter(Boolean);
+                results.push({
+                    category: 'Miembros', icon: 'fa-user', tone: 'blue', title: m.name || 'Miembro sin nombre',
+                    meta: [m.club && m.club !== 'Ninguno' ? m.club : '', m.gp ? `Grupo Pequeño: ${m.gp}` : '', m.phone || ''].filter(Boolean).join(' · '),
+                    text: globalSearchText(m), view: 'members', action: 'member', id: m.id, extra: { name: m.name || '', roles }
+                });
+                if (roles.length) {
+                    results.push({
+                        category: 'Ministerios Juveniles', icon: 'fa-hands-praying', tone: 'rose', title: m.name || 'Persona',
+                        meta: roles.join(' · '), text: `${m.name || ''} ${roles.join(' ')}`, view: 'clubs', action: 'ministry', id: m.id, extra: { name: m.name || '', roles }
+                    });
+                }
+            });
+
+            (Array.isArray(activities) ? activities : []).filter(a => {
+                const ctx = getActiveChurchContext();
+                return (a.churchId || normalizeChurchId(a.churchName || '')) === ctx.churchId;
+            }).forEach(a => results.push({
+                category: 'Actividades JA', icon: 'fa-calendar-days', tone: 'emerald', title: a.name || a.title || a.type || 'Actividad JA',
+                meta: [a.type || '', a.dateStart || a.date || '', a.location || a.lugar || '', a.status || ''].filter(Boolean).join(' · '),
+                text: globalSearchText(a), view: 'activities', action: 'activity', id: a.id
+            }));
+
+            (Array.isArray(savedSchedules) ? savedSchedules : []).filter(s => {
+                const ctx = getActiveChurchContext();
+                return (s.churchId || normalizeChurchId(s.churchName || '')) === ctx.churchId;
+            }).forEach(s => results.push({
+                category: 'Programaciones', icon: 'fa-calendar-check', tone: 'purple', title: s.title || 'Programa Regular',
+                meta: [s.type || '', s.date || '', s.gp || ''].filter(Boolean).join(' · '),
+                text: globalSearchText(s), view: 'scheduler', action: 'schedule', id: s.id
+            }));
+
+            (Array.isArray(financeRecords) ? financeRecords : []).filter(f => {
+                const ctx = getActiveChurchContext();
+                return (f.churchId || normalizeChurchId(f.churchName || '')) === ctx.churchId;
+            }).forEach(f => results.push({
+                category: 'Finanzas', icon: 'fa-coins', tone: 'amber', title: f.concept || 'Movimiento financiero',
+                meta: [f.type || '', f.category || '', f.date || ''].filter(Boolean).join(' · '),
+                text: globalSearchText(f), view: 'finances', action: 'finance', id: f.id
+            }));
+
+            return results;
+        }
+
+        function globalSearchRender(query) {
+            const box = document.getElementById('global-search-results');
+            const clear = document.getElementById('global-search-clear');
+            if (!box) return;
+            const q = globalSearchNormalize(query);
+            if (clear) clear.classList.toggle('hidden', !q);
+            if (!q) {
+                box.classList.add('hidden');
+                box.innerHTML = '';
+                return;
+            }
+            const terms = q.split(/\s+/).filter(Boolean);
+            const index = globalSearchBuildIndex();
+            const matches = index.filter(item => {
+                const haystack = globalSearchNormalize(`${item.title} ${item.meta} ${item.text} ${(item.extra?.roles || []).join(' ')}`);
+                return terms.every(term => haystack.includes(term));
+            }).slice(0, 30);
+
+            if (!matches.length) {
+                box.innerHTML = `<div class="p-6 text-center"><i class="fas fa-magnifying-glass text-2xl text-slate-300"></i><p class="text-sm font-bold text-slate-700 mt-2">No encontramos resultados</p><p class="text-xs text-slate-400 mt-1">Prueba con otro nombre, actividad o palabra.</p></div>`;
+                box.classList.remove('hidden');
+                return;
+            }
+
+            const groups = {};
+            matches.forEach((item, index) => { (groups[item.category] ||= []).push({...item, resultIndex:index}); });
+            box.innerHTML = Object.entries(groups).map(([category, items]) => `
+                <div class="border-b border-slate-100 last:border-b-0">
+                    <div class="px-4 py-2 bg-slate-50 text-[10px] font-extrabold uppercase tracking-wider text-slate-500">${globalSearchEscape(category)}</div>
+                    ${items.map(item => `
+                        <button type="button" class="global-search-result w-full text-left px-4 py-3 hover:bg-blue-50 focus:bg-blue-50 focus:outline-none flex items-center gap-3" data-result-index="${item.resultIndex}">
+                            <span class="w-9 h-9 rounded-xl bg-${item.tone}-50 text-${item.tone}-600 flex items-center justify-center shrink-0"><i class="fas ${item.icon}"></i></span>
+                            <span class="min-w-0 flex-1"><span class="block text-sm font-bold text-slate-800 truncate">${globalSearchEscape(item.title)}</span><span class="block text-[11px] text-slate-500 truncate mt-0.5">${globalSearchEscape(item.meta || 'Ver registro')}</span></span>
+                            <i class="fas fa-chevron-right text-[10px] text-slate-300"></i>
+                        </button>`).join('')}
+                </div>`).join('');
+            box.classList.remove('hidden');
+            box.querySelectorAll('.global-search-result').forEach(btn => btn.addEventListener('click', () => globalSearchOpenResult(matches[Number(btn.dataset.resultIndex)])));
+        }
+
+        function globalSearchOpenResult(item) {
+            const input = document.getElementById('global-search-input');
+            const box = document.getElementById('global-search-results');
+            if (box) box.classList.add('hidden');
+            if (input) input.blur();
+            if (!item) return;
+            if (item.action === 'member' || item.action === 'ministry') {
+                switchView(item.action === 'ministry' ? 'clubs' : 'members', item.action === 'ministry' ? 'Ministerio JA' : null);
+                if (item.action === 'member') {
+                    const filter = document.getElementById('filter-search');
+                    if (filter) { filter.value = item.extra?.name || item.title || ''; renderMembersTable(); }
+                }
+            } else if (item.action === 'activity') {
+                switchView('activities');
+                setTimeout(() => { if (typeof viewActivityDetails === 'function') viewActivityDetails(item.id); }, 0);
+            } else if (item.action === 'schedule') {
+                switchView('scheduler');
+                setTimeout(() => { if (typeof loadSavedScheduleIntoEditor === 'function') loadSavedScheduleIntoEditor(item.id); }, 0);
+            } else if (item.action === 'finance') {
+                switchView('finances');
+            }
+        }
+
+        function initGlobalSearch() {
+            const input = document.getElementById('global-search-input');
+            const clear = document.getElementById('global-search-clear');
+            const box = document.getElementById('global-search-results');
+            if (!input || input.dataset.ready === '1') return;
+            input.dataset.ready = '1';
+            input.addEventListener('input', () => globalSearchRender(input.value));
+            input.addEventListener('focus', () => { if (input.value.trim()) globalSearchRender(input.value); });
+            input.addEventListener('keydown', e => { if (e.key === 'Escape') { input.value=''; globalSearchRender(''); input.blur(); } });
+            if (clear) clear.addEventListener('click', () => { input.value=''; globalSearchRender(''); input.focus(); });
+            document.addEventListener('click', e => {
+                if (!e.target.closest('#global-search-panel')) box?.classList.add('hidden');
+            });
+            document.addEventListener('keydown', e => {
+                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+                    e.preventDefault(); input.focus(); input.select();
+                }
+            });
+        }
+
+        function refreshGlobalSearch() {
+            const input = document.getElementById('global-search-input');
+            if (input && input.value.trim()) globalSearchRender(input.value);
+        }
+
         function switchView(viewName, clubName = null) {
             // Ocultar todas las vistas
             document.querySelectorAll('.view-section').forEach(sec => sec.classList.add('hidden'));
@@ -3916,6 +4100,9 @@ input,select,textarea{font-size:16px;}
                 renderActivitiesList();
             }
         }
+
+        initGlobalSearch();
+        document.getElementById('active-church-select')?.addEventListener('change', () => setTimeout(refreshGlobalSearch, 50));
 
         function updateSidebarBadges() {
             document.getElementById('badge-aventureros').textContent = members.filter(m => m.club === 'Aventureros').length;
